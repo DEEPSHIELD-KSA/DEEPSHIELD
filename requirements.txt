@@ -1,0 +1,6 @@
+streamlit
+Pillow
+transformers
+pandas
+altair
+requests
