@@ -112,7 +112,7 @@ def predict_image(image_hash: str, _image: Image.Image):
 def main():
     try:
         logo_image = Image.open("logo.png")
-        st.image(logo_image, width=300)
+        st.image(logo_image, width=500)
     except Exception as e:
         st.write("Logo not found.")
 
