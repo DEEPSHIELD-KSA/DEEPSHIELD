@@ -10,12 +10,21 @@ import os
 
 # ----- Helper functions for fetching images for the game -----
 def fetch_real_image():
+    """
+    Fetch a random real image from the 'game_real' directory.
+    Make sure the folder 'game_real' exists and contains JPG images.
+    """
     real_images = [os.path.join("game_real", f) for f in os.listdir("game_real") if f.lower().endswith(".jpg")]
     if real_images:
         return Image.open(random.choice(real_images))
     return None
 
 def fetch_fake_image():
+    """
+    Fetch a fake image.
+    Here we simply return a default fake image from the 'samples' directory.
+    Adjust this function if you have a dedicated folder for fake images.
+    """
     fake_image_path = "samples/fake_sample.jpg"
     if os.path.exists(fake_image_path):
         return Image.open(fake_image_path)
@@ -241,3 +250,14 @@ def game():
     if st.button("Go to Home"):
         st.session_state.page = "main"
         rerun()
+
+# =======================
+# Page Routing
+# =======================
+if __name__ == "__main__":
+    if "page" not in st.session_state:
+        st.session_state.page = "main"
+    if st.session_state.page == "game":
+        game()
+    else:
+        main()
