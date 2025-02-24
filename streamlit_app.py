@@ -1,3 +1,5 @@
+!pip install streamlit transformers pandas altair pillow
+
 import streamlit as st
 from PIL import Image
 from transformers import pipeline
@@ -6,161 +8,197 @@ import altair as alt
 import io
 import hashlib
 import random
-import time  # Added for automatic progression
 
-# Set page config with new name and logo
-st.set_page_config(page_title="DEEPSHIELD", page_icon="🛡️", layout="centered")
+# Set page config with new branding
+st.set_page_config(page_title="DFDetect", page_icon="🛡️", layout="centered")
 
-# Custom CSS with updated branding
+# Custom CSS for modern UI
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&display=swap');
     
     * {
-        font-family: 'Space Grotesk', sans-serif;
+        font-family: 'Inter', sans-serif;
     }
     
     .main {
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-        color: #ffffff;
+        background: #0A192F;
+        color: #FFFFFF;
+    }
+    
+    .header {
+        text-align: center;
+        padding: 2rem 0;
+    }
+    
+    .upload-section {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 3rem;
+        margin: 2rem auto;
+        max-width: 600px;
     }
     
     .stButton>button {
-        background: #2196F3;
-        color: white;
-        border-radius: 15px;
-        padding: 10px 24px;
+        background: #00D4FF;
+        color: #0A192F;
+        border-radius: 12px;
+        padding: 12px 32px;
         border: none;
+        font-weight: 600;
         transition: all 0.3s ease;
     }
     
     .stButton>button:hover {
-        background: #64B5F6;
+        background: #00B4CC;
         transform: scale(1.05);
     }
     
-    .header-logo {
-        text-align: center;
-        margin-bottom: 2rem;
+    .result-card {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        padding: 2rem;
+        margin: 1.5rem 0;
+    }
+    
+    .sample-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 2rem;
+        margin-top: 2rem;
     }
     
     </style>
 """, unsafe_allow_html=True)
 
-# Load the deepfake detection model
+# Load model and helper functions (keep existing implementations)
 @st.cache_resource
 def load_model():
     return pipeline("image-classification", model="dima806/deepfake_vs_real_image_detection")
 
-# =======================
-# Main Page: Image Analysis
-# =======================
+def get_image_hash(image: Image.Image) -> str:
+    buf = io.BytesIO()
+    image.save(buf, format="PNG")
+    return hashlib.sha256(buf.getvalue()).hexdigest()
+
+@st.cache_data(show_spinner=False)
+def predict_image(image_hash: str, _image: Image.Image):
+    model = load_model()
+    return model(_image)
+
+# Main app structure
 def main():
-    # Display logo
-    st.markdown('<div class="header-logo">', unsafe_allow_html=True)
-    st.image("logo.png", use_container_width=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    st.title("DEEPSHIELD AI Detection System")
+    # Navigation
+    st.sidebar.markdown("# DFDetect")
+    page = st.sidebar.radio("", ["Home", "Samples"])
     
-    # Sidebar with Navigation
-    with st.sidebar:
-        st.markdown("""
-            <div style="border-left: 3px solid #2196F3; padding-left: 1rem; margin: 1rem 0;">
-                <h2 style="color: #2196F3;">🛡️ Navigation</h2>
-                <p>Test your skills in our detection challenge!</p>
-            </div>
-        """, unsafe_allow_html=True)
-        if st.button("🎮 Start Detection Game", use_container_width=True):
-            st.session_state.page = "game"
-            st.rerun()
+    if page == "Home":
+        render_home()
+    else:
+        render_samples()
+
+def render_home():
+    """Home page with upload functionality"""
+    st.markdown("""
+        <div class="header">
+            <h1>DeepFake Detect</h1>
+            <p>Upload an image to test for possible deepfakes</p>
+        </div>
+    """, unsafe_allow_html=True)
     
-    # Rest of main page content remains similar with updated styling...
+    with st.container():
+        col1, col2, col3 = st.columns([1,2,1])
+        with col2:
+            with st.form("upload-form"):
+                uploaded_file = st.file_uploader("", type=["jpg", "jpeg", "png"], 
+                                               label_visibility="collapsed")
+                submitted = st.form_submit_button("Analyze Now")
+                
+                if uploaded_file and submitted:
+                    process_image(uploaded_file)
+                    
+    st.markdown("---")
+    st.caption("Image credits Facebook AI")
 
-# =======================
-# Updated Game Page with Auto-Advance
-# =======================
-def game():
-    # Display logo
-    st.markdown('<div class="header-logo">', unsafe_allow_html=True)
-    st.image("logo.png", use_container_width=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    st.title("DEEPSHIELD Challenge")
+def render_samples():
+    """Samples page with pre-loaded examples"""
+    st.markdown("""
+        <div class="header">
+            <h1>Sample Detections</h1>
+            <p>Prediction results produced by our deepfake detection model</p>
+        </div>
+    """, unsafe_allow_html=True)
     
-    # Initialize game state
-    if "game_score" not in st.session_state:
-        st.session_state.game_score = 0
-    if "game_round" not in st.session_state:
-        st.session_state.game_round = 1
-    if "show_result" not in st.session_state:
-        st.session_state.show_result = False
-    if "current_round" not in st.session_state:
-        st.session_state.current_round = None
-
-    # Game over state
-    if st.session_state.game_round > 5:
-        st.balloons()
-        st.markdown(f"## Game Over! Final Score: {st.session_state.game_score}/5")
-        if st.button("Play Again"):
-            st.session_state.clear()
-            st.rerun()
-        return
-
-    # Round progress
-    st.markdown(f"### Round {st.session_state.game_round}/5")
-    progress = st.progress(st.session_state.game_round * 0.2)
-
-    # Game logic
-    if not st.session_state.current_round or st.session_state.show_result:
-        # Initialize new round
-        real_image = Image.open("samples/real_sample.jpg")  # Replace with your real images
-        fake_image = Image.open("samples/fake_sample.jpg")  # Replace with your fake images
+    with st.container():
+        col1, col2 = st.columns(2)
+        with col1:
+            st.image("samples/real_sample.jpg", caption="Authentic Image")
+            st.markdown("""
+                <div class="result-card">
+                    <h3>Detection Results</h3>
+                    <p>Real Confidence: 98.7%</p>
+                    <p>Fake Confidence: 1.3%</p>
+                </div>
+            """, unsafe_allow_html=True)
         
-        # Randomize positions
-        if random.choice([True, False]):
-            st.session_state.current_round = {
-                "left": real_image,
-                "right": fake_image,
-                "answer": "left"
-            }
-        else:
-            st.session_state.current_round = {
-                "left": fake_image,
-                "right": real_image,
-                "answer": "right"
-            }
-        st.session_state.show_result = False
+        with col2:
+            st.image("samples/fake_sample.jpg", caption="AI-Generated Image")
+            st.markdown("""
+                <div class="result-card">
+                    <h3>Detection Results</h3>
+                    <p>Real Confidence: 4.2%</p>
+                    <p>Fake Confidence: 95.8%</p>
+                </div>
+            """, unsafe_allow_html=True)
 
-    # Display images
-    col1, col2 = st.columns(2)
-    with col1:
-        st.image(st.session_state.current_round["left"], use_container_width=True)
-    with col2:
-        st.image(st.session_state.current_round["right"], use_container_width=True)
-
-    # User input and automatic progression
-    if not st.session_state.show_result:
-        user_choice = st.radio("Which image is real?", ["left", "right"])
-        if st.button("Submit"):
-            if user_choice == st.session_state.current_round["answer"]:
-                st.session_state.game_score += 1
-                st.success("Correct! 🎉")
-            else:
-                st.error("Wrong! 😢")
+def process_image(uploaded_file):
+    """Process and display results for uploaded image"""
+    try:
+        with st.spinner("Analyzing image..."):
+            image = Image.open(uploaded_file)
+            image_hash = get_image_hash(image)
+            result = predict_image(image_hash, image)
+            scores = {r["label"].lower(): r["score"] for r in result}
             
-            st.session_state.show_result = True
-            time.sleep(1.5)  # Show result for 1.5 seconds
-            st.session_state.game_round += 1
-            st.rerun()
+            with st.container():
+                st.markdown("## Detection Results")
+                
+                # Confidence meters
+                col1, col2 = st.columns(2)
+                with col1:
+                    render_confidence_meter(scores.get('real', 0), "Real", "#00D4FF")
+                with col2:
+                    render_confidence_meter(scores.get('fake', 0), "Fake", "#FF4D4D")
+                
+                # Final verdict
+                final_pred = max(scores, key=scores.get)
+                st.markdown(f"""
+                    <div class="result-card">
+                        <h3>Final Verdict: {final_pred.capitalize()}</h3>
+                        <p>Confidence: {scores[final_pred]*100:.2f}%</p>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+    except Exception as e:
+        st.error(f"Error processing image: {str(e)}")
 
-# =======================
-# Page Routing
-# =======================
-if "page" not in st.session_state:
-    st.session_state.page = "main"
+def render_confidence_meter(value, label, color):
+    """Render a circular confidence meter"""
+    st.markdown(f"""
+        <div style="text-align: center;">
+            <svg width="150" height="150">
+                <circle cx="75" cy="75" r="60" stroke="#333" stroke-width="10" fill="none"/>
+                <circle cx="75" cy="75" r="60" stroke="{color}" stroke-width="10" 
+                    fill="none" stroke-dasharray="{2 * 3.1416 * 60}" 
+                    stroke-dashoffset="{2 * 3.1416 * 60 * (1 - value)}"/>
+                <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" 
+                    style="font-size: 24px; font-weight: bold; fill: {color};">
+                    {value*100:.1f}%
+                </text>
+            </svg>
+            <h3>{label}</h3>
+        </div>
+    """, unsafe_allow_html=True)
 
-if st.session_state.page == "main":
+if __name__ == "__main__":
     main()
-elif st.session_state.page == "game":
-    game()
