@@ -14,11 +14,40 @@ def fetch_real_image():
     Fetch a random real image from the 'game_real' directory.
     Make sure the folder 'game_real' exists and contains JPG images.
     """
-    real_images = [os.path.join("game_real", f) for f in os.listdir("game_real") if f.lower().endswith(".jpg")]
-    if real_images:
-        # Use .copy() so that the image is fully loaded into memory.
-        return Image.open(random.choice(real_images)).copy()
-    return None
+    # Check if directory exists
+    if not os.path.exists("game_real"):
+        st.error("Error: 'game_real' directory not found. Please create it and add JPG images.")
+        return None
+        
+    real_images = [os.path.join("game_real", f) for f in os.listdir("game_real") if f.lower().endswith((".jpg", ".jpeg", ".png"))]
+    
+    # Check if there are any images in the directory
+    if not real_images:
+        st.error("Error: No images found in 'game_real' directory. Please add some JPG images.")
+        return None
+        
+    # Track used images to avoid repetition
+    if "used_real_images" not in st.session_state:
+        st.session_state.used_real_images = set()
+        
+    # Filter out already used images
+    available_images = [img for img in real_images if img not in st.session_state.used_real_images]
+    
+    # If all images have been used, reset the tracking
+    if not available_images:
+        st.session_state.used_real_images = set()
+        available_images = real_images
+    
+    # Select a random image
+    selected_image = random.choice(available_images)
+    st.session_state.used_real_images.add(selected_image)
+    
+    try:
+        # Use .copy() so that the image is fully loaded into memory
+        return Image.open(selected_image).copy()
+    except Exception as e:
+        st.error(f"Error loading image {selected_image}: {str(e)}")
+        return None
 
 def fetch_fake_image():
     """
@@ -26,10 +55,27 @@ def fetch_fake_image():
     Here we simply return a default fake image from the 'samples' directory.
     Adjust this function if you have a dedicated folder for fake images.
     """
+    # Try dedicated fake images folder first
+    if os.path.exists("game_fake"):
+        fake_images = [os.path.join("game_fake", f) for f in os.listdir("game_fake") if f.lower().endswith((".jpg", ".jpeg", ".png"))]
+        if fake_images:
+            selected_image = random.choice(fake_images)
+            try:
+                return Image.open(selected_image).copy()
+            except Exception as e:
+                st.error(f"Error loading fake image: {str(e)}")
+    
+    # Fall back to sample fake image
     fake_image_path = "samples/fake_sample.jpg"
     if os.path.exists(fake_image_path):
-        return Image.open(fake_image_path).copy()
-    return None
+        try:
+            return Image.open(fake_image_path).copy()
+        except Exception as e:
+            st.error(f"Error loading sample fake image: {str(e)}")
+            return None
+    else:
+        st.error("Error: Fake image sample not found at 'samples/fake_sample.jpg'")
+        return None
 # ----- End of helper functions for fetching images -----
 
 # Set page config before any other Streamlit commands
@@ -88,6 +134,17 @@ def main():
         </div>
         """, unsafe_allow_html=True)
         if st.button("🎮 Start Detection Game", use_container_width=True):
+            # Reset game state when starting a new game
+            st.session_state.game_score = 0
+            st.session_state.game_round = 1
+            if "used_real_images" in st.session_state:
+                st.session_state.used_real_images = set()
+            if "current_round_data" in st.session_state:
+                st.session_state.pop("current_round_data")
+            if "round_submitted" in st.session_state:
+                st.session_state.pop("round_submitted")
+            if "round_result" in st.session_state:
+                st.session_state.pop("round_result")
             st.session_state.page = "game"
     
     col1, col2 = st.columns([4, 3])
@@ -99,15 +156,28 @@ def main():
     with col2:
         if uploaded_file or sample_option != "Select":
             st.markdown("### 🔍 Preview")
-            if uploaded_file:
-                image = Image.open(uploaded_file)
-            elif sample_option == "Real Sample":
-                image = Image.open("samples/real_sample.jpg")
-            else:
-                image = Image.open("samples/fake_sample.jpg")
-            st.image(image, use_container_width=True, caption="Selected Image Preview")
+            try:
+                if uploaded_file:
+                    image = Image.open(uploaded_file)
+                elif sample_option == "Real Sample":
+                    if os.path.exists("samples/real_sample.jpg"):
+                        image = Image.open("samples/real_sample.jpg")
+                    else:
+                        st.error("Real sample image not found. Please check 'samples/real_sample.jpg'")
+                        image = None
+                else:
+                    if os.path.exists("samples/fake_sample.jpg"):
+                        image = Image.open("samples/fake_sample.jpg")
+                    else:
+                        st.error("Fake sample image not found. Please check 'samples/fake_sample.jpg'")
+                        image = None
+                        
+                if image:
+                    st.image(image, use_container_width=True, caption="Selected Image Preview")
+            except Exception as e:
+                st.error(f"Error loading image: {str(e)}")
     
-    if uploaded_file or sample_option != "Select":
+    if (uploaded_file or sample_option != "Select") and 'image' in locals() and image is not None:
         try:
             with st.spinner("🔬 Scanning image for AI fingerprints..."):
                 image_hash = get_image_hash(image)
@@ -159,31 +229,62 @@ def game():
     st.title("Deepfake Game")
     st.write("Guess which image is real! You have 5 rounds.")
 
+    # Initialize game state
     if "game_score" not in st.session_state:
         st.session_state.game_score = 0
     if "game_round" not in st.session_state:
         st.session_state.game_round = 1
+    if "used_real_images" not in st.session_state:
+        st.session_state.used_real_images = set()
 
+    # Game over state
     if st.session_state.game_round > 5:
-        st.write(f"**Game Over! Your score: {st.session_state.game_score}/5**")
+        st.markdown(f"""
+        <div style="background: rgba(0,188,212,0.2); padding: 2rem; border-radius: 15px; text-align: center;">
+            <h2 style="margin-bottom:1rem;">🎮 Game Over!</h2>
+            <h3>Your score: {st.session_state.game_score}/5</h3>
+            <p>Can you do better next time?</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
         if st.button("Play Again"):
             st.session_state.game_score = 0
             st.session_state.game_round = 1
             st.session_state.used_real_images = set()
-            st.session_state.pop("current_round_data", None)
-            st.session_state.pop("round_submitted", None)
-            st.session_state.pop("round_result", None)
+            if "current_round_data" in st.session_state:
+                st.session_state.pop("current_round_data")
+            if "round_submitted" in st.session_state:
+                st.session_state.pop("round_submitted") 
+            if "round_result" in st.session_state:
+                st.session_state.pop("round_result")
+            st.experimental_rerun()
+        
+        if st.button("Return to Home"):
+            st.session_state.page = "main"
+            st.experimental_rerun()
         return
 
-    st.write(f"Round {st.session_state.game_round} of 5")
+    # Display current round
+    st.markdown(f"""
+    <div style="background: rgba(0,188,212,0.1); padding: 1rem; border-radius: 15px; text-align: center; margin-bottom: 1.5rem;">
+        <h3 style="margin:0;">Round {st.session_state.game_round} of 5</h3>
+        <p style="margin:0;">Current Score: {st.session_state.game_score}</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-    if "current_round_data" not in st.session_state:
+    # Generate new round data if needed
+    if "current_round_data" not in st.session_state or not st.session_state.current_round_data:
         real_image = fetch_real_image()
         fake_image = fetch_fake_image()
+        
         if real_image is None or fake_image is None:
-            st.error("Failed to load images. Please try again.")
+            st.error("Could not load game images. Please check that your 'game_real' and 'samples' directories contain valid images.")
+            if st.button("Return to Main Page"):
+                st.session_state.page = "main"
+                st.experimental_rerun()
             return
 
+        # Randomly decide which side gets the real image
         if random.choice([True, False]):
             left_image, right_image = real_image, fake_image
             correct_answer = "Left"
@@ -197,56 +298,74 @@ def game():
             "correct_answer": correct_answer,
         }
         st.session_state.round_submitted = False
+        st.session_state.round_result = None
 
+    # Display images side by side
     col1, col2 = st.columns(2)
     with col1:
         st.image(
             st.session_state.current_round_data["left_image"],
             caption="Left Image",
             use_container_width=True,
-            key=f"left_{st.session_state.game_round}"
+            output_format="JPEG"
         )
     with col2:
         st.image(
             st.session_state.current_round_data["right_image"],
             caption="Right Image",
             use_container_width=True,
-            key=f"right_{st.session_state.game_round}"
+            output_format="JPEG"
         )
 
-    if not st.session_state.round_submitted:
-        control_container = st.empty()
-        with control_container.container():
-            user_choice = st.radio("Which image is real?", ["Left", "Right"])
-            if st.button("Submit", key="submit"):
-                if user_choice == st.session_state.current_round_data["correct_answer"]:
+    # User selection and submission
+    if "round_submitted" not in st.session_state or not st.session_state.round_submitted:
+        st.markdown("### Which image do you think is real?")
+        user_choice = st.radio("Select one:", ["Left", "Right"], horizontal=True, label_visibility="collapsed")
+        
+        col_button1, col_button2 = st.columns([1, 1])
+        with col_button1:
+            if st.button("Submit Answer", use_container_width=True):
+                correct = user_choice == st.session_state.current_round_data["correct_answer"]
+                if correct:
                     st.session_state.game_score += 1
                     st.session_state.round_result = "Correct! 🎉"
                 else:
                     st.session_state.round_result = "Wrong! 😢"
                 st.session_state.round_submitted = True
-                control_container.empty()
+                st.experimental_rerun()
 
-    if st.session_state.round_submitted:
+    # Display result after submission
+    if "round_submitted" in st.session_state and st.session_state.round_submitted:
         if st.session_state.round_result == "Correct! 🎉":
-            st.success(st.session_state.round_result)
+            st.success(f"{st.session_state.round_result} The {st.session_state.current_round_data['correct_answer']} image is real.")
         else:
-            st.error(st.session_state.round_result)
-        if st.button("Next Round"):
+            st.error(f"{st.session_state.round_result} The {st.session_state.current_round_data['correct_answer']} image is real.")
+        
+        if st.button("Next Round", use_container_width=True):
             st.session_state.game_round += 1
-            st.session_state.pop("current_round_data", None)
-            st.session_state.pop("round_submitted", None)
-            st.session_state.pop("round_result", None)
+            if "current_round_data" in st.session_state:
+                st.session_state.pop("current_round_data")
+            if "round_submitted" in st.session_state:
+                st.session_state.pop("round_submitted")
+            if "round_result" in st.session_state:
+                st.session_state.pop("round_result")
+            st.experimental_rerun()
 
-    if st.button("Go to Home"):
+    # Return to main page button
+    st.markdown("---")
+    if st.button("Exit Game", use_container_width=True):
         st.session_state.page = "main"
+        st.experimental_rerun()
 
 # =======================
 # Page Routing
 # =======================
 if __name__ == "__main__":
+    # Initialize the page state if not present
     if "page" not in st.session_state:
         st.session_state.page = "main"
+        
+    # Route to the correct page
     if st.session_state.page == "game":
         game()
     else:
