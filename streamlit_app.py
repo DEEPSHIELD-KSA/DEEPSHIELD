@@ -97,7 +97,8 @@ def rerun():
 # =======================
 def main():
     # Add a logo at the top center
-     st.image("logo.png", width=300)   # Replace with your logo path
+         # Display a small logo at the top center
+    st.image("logo.png", width=100)  # Replace with your logo path
 
     # Add a title and description
     st.title("Deepfake Detection System")
