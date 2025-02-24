@@ -8,6 +8,29 @@ import hashlib
 import random
 import os
 
+# ----- Helper functions for fetching images for the game -----
+def fetch_real_image():
+    """
+    Fetch a random real image from the 'game_real' directory.
+    Make sure the folder 'game_real' exists and contains JPG images.
+    """
+    real_images = [os.path.join("game_real", f) for f in os.listdir("game_real") if f.lower().endswith(".jpg")]
+    if real_images:
+        return Image.open(random.choice(real_images))
+    return None
+
+def fetch_fake_image():
+    """
+    Fetch a fake image.
+    Here we simply return a default fake image from the 'samples' directory.
+    Adjust this function if you have a dedicated folder for fake images.
+    """
+    fake_image_path = "samples/fake_sample.jpg"
+    if os.path.exists(fake_image_path):
+        return Image.open(fake_image_path)
+    return None
+# ----- End of helper functions for fetching images -----
+
 # Set page config before any other Streamlit commands
 st.set_page_config(page_title="Deepfake Detective", page_icon="🕵️", layout="centered")
 
@@ -88,11 +111,8 @@ def rerun():
 # =======================
 def main():
     # Display a centered logo with size 300x300
-    st.markdown("""
-    <div style="text-align: center;">
-        <img src="logo.png" width="300" height="300">
-    </div>
-    """, unsafe_allow_html=True)
+      st.image("logo.png", use_container_width=True)  # Replace with your logo path
+
     
     st.title("Deepfake Detection System")
     
@@ -134,34 +154,30 @@ def main():
             st.markdown("---")
             st.markdown("### 📊 Detection Report")
             
-            cols = st.columns(2)
-            with cols[0]:
-                st.markdown(f"""
-                    <div class="metric-box">
-                        <h3 style="margin:0; color: #00ff88">REAL</h3>
-                        <h1 style="margin:0; font-size: 2.5rem">{scores.get('real', 0)*100:.2f}%</h1>
-                    </div>
-                """, unsafe_allow_html=True)
-            with cols[1]:
-                st.markdown(f"""
-                    <div class="metric-box">
-                        <h3 style="margin:0; color: #ff4d4d">FAKE</h3>
-                        <h1 style="margin:0; font-size: 2.5rem">{scores.get('fake', 0)*100:.2f}%</h1>
-                    </div>
-                """, unsafe_allow_html=True)
-            
-            chart_data = pd.DataFrame({
-                "Category": ["Real", "Fake"],
-                "Confidence": [scores.get("real", 0), scores.get("fake", 0)]
-            })
-            chart = alt.Chart(chart_data).mark_bar(size=40).encode(
-                x=alt.X("Category", title="", axis=alt.Axis(labelAngle=0)),
-                y=alt.Y("Confidence", title="Confidence", scale=alt.Scale(domain=[0, 1])),
-                color=alt.Color("Category", scale=alt.Scale(domain=["Real", "Fake"],
-                               range=["#00ff88", "#ff4d4d"]), legend=None),
-                tooltip=["Category", "Confidence"]
-            ).properties(height=200)
-            st.altair_chart(chart, use_container_width=True)
+            # Instead of one combined chart, display two separate charts:
+            col_chart_left, col_chart_right = st.columns(2)
+            with col_chart_left:
+                real_chart_data = pd.DataFrame({
+                    "Category": ["Real"],
+                    "Confidence": [scores.get("real", 0)]
+                })
+                real_chart = alt.Chart(real_chart_data).mark_bar(size=40, color="#00ff88").encode(
+                    x=alt.X("Category", title=""),
+                    y=alt.Y("Confidence", title="Confidence", scale=alt.Scale(domain=[0, 1])),
+                    tooltip=["Category", "Confidence"]
+                ).properties(height=200)
+                st.altair_chart(real_chart, use_container_width=True)
+            with col_chart_right:
+                fake_chart_data = pd.DataFrame({
+                    "Category": ["Fake"],
+                    "Confidence": [scores.get("fake", 0)]
+                })
+                fake_chart = alt.Chart(fake_chart_data).mark_bar(size=40, color="#ff4d4d").encode(
+                    x=alt.X("Category", title=""),
+                    y=alt.Y("Confidence", title="Confidence", scale=alt.Scale(domain=[0, 1])),
+                    tooltip=["Category", "Confidence"]
+                ).properties(height=200)
+                st.altair_chart(fake_chart, use_container_width=True)
             
             final_pred = max(scores, key=scores.get)
             if final_pred == "fake":
