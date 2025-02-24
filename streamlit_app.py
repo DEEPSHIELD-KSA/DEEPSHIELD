@@ -16,7 +16,8 @@ def fetch_real_image():
     """
     real_images = [os.path.join("game_real", f) for f in os.listdir("game_real") if f.lower().endswith(".jpg")]
     if real_images:
-        return Image.open(random.choice(real_images))
+        # Use .copy() so that the image is fully loaded into memory.
+        return Image.open(random.choice(real_images)).copy()
     return None
 
 def fetch_fake_image():
@@ -27,7 +28,7 @@ def fetch_fake_image():
     """
     fake_image_path = "samples/fake_sample.jpg"
     if os.path.exists(fake_image_path):
-        return Image.open(fake_image_path)
+        return Image.open(fake_image_path).copy()
     return None
 # ----- End of helper functions for fetching images -----
 
