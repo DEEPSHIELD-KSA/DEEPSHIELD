@@ -72,7 +72,7 @@ def rerun():
         st.experimental_rerun()
 
 # Set page config before any other Streamlit commands
-st.set_page_config(page_title="Deepfake Detective", page_icon="🕵️", layout="centered")
+st.set_page_config(page_title="Deepfake", page_icon="🕵️", layout="centered")
 
 # Custom CSS for dark blue and cyan-blue theme
 st.markdown("""
@@ -153,12 +153,6 @@ def welcome():
             </ol>
         </div>
         """, unsafe_allow_html=True)
-
-    st.markdown("---")
-
-
-
-    """, unsafe_allow_html=True)
 
     if st.button("Get Started →", use_container_width=True, type="primary"):
         st.session_state.page = "main"
