@@ -15,16 +15,13 @@ st.set_page_config(page_title="Deepfake Detective", page_icon="🕵️", layout=
 st.markdown("""
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&display=swap');
-        
         * {
             font-family: 'Space Grotesk', sans-serif;
         }
-        
         .main {
             background: linear-gradient(135deg, #001f3f 0%, #00bcd4 100%);
             color: #ffffff;
         }
-        
         .stButton>button {
             background: #00bcd4;
             color: white;
@@ -33,19 +30,16 @@ st.markdown("""
             border: none;
             transition: all 0.3s ease;
         }
-        
         .stButton>button:hover {
             background: #008ba3;
             transform: scale(1.05);
         }
-        
         .stFileUploader>div>div>div>div {
             color: #ffffff;
             border: 2px dashed #00bcd4;
             background: rgba(0, 188, 212, 0.1);
             border-radius: 15px;
         }
-        
         .metric-box {
             background: rgba(0, 188, 212, 0.1);
             padding: 20px;
@@ -53,13 +47,11 @@ st.markdown("""
             margin: 10px 0;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
-        
         .game-image {
             border: 3px solid transparent;
             border-radius: 15px;
             transition: all 0.3s ease;
         }
-        
         .game-image:hover {
             transform: scale(1.02);
             cursor: pointer;
@@ -79,7 +71,6 @@ def get_image_hash(image: Image.Image) -> str:
     return hashlib.sha256(buf.getvalue()).hexdigest()
 
 # Cache predictions based on the image hash.
-# The _image parameter is not hashed, so caching is only based on image_hash.
 @st.cache_data(show_spinner=False)
 def predict_image(image_hash: str, _image: Image.Image):
     model = load_model()
@@ -96,14 +87,15 @@ def rerun():
 # Main Page: Image Analysis
 # =======================
 def main():
-    # Add a logo at the top center
-         # Display a small logo at the top center
-    st.image("logo.png", width=100)  # Replace with your logo path
-
-    # Add a title and description
+    # Display a centered logo with size 300x300
+    st.markdown("""
+    <div style="text-align: center;">
+        <img src="logo.png" width="300" height="300">
+    </div>
+    """, unsafe_allow_html=True)
+    
     st.title("Deepfake Detection System")
     
-    # Sidebar with Navigation
     with st.sidebar:
         st.markdown("""
             <div style="border-left: 3px solid #00bcd4; padding-left: 1rem; margin: 1rem 0;">
@@ -115,7 +107,6 @@ def main():
             st.session_state.page = "game"
             rerun()
     
-    # Main Content: Upload or choose sample image
     col1, col2 = st.columns([4, 3])
     with col1:
         st.markdown("### 📤 Image Analysis Zone")
@@ -134,7 +125,6 @@ def main():
                 image = Image.open("samples/fake_sample.jpg")
             st.image(image, use_container_width=True, caption="Selected Image Preview")
     
-    # Analysis Section
     if uploaded_file or sample_option != "Select":
         try:
             with st.spinner("🔬 Scanning image for AI fingerprints..."):
@@ -281,3 +271,14 @@ def game():
     if st.button("Go to Home"):
         st.session_state.page = "main"
         st.experimental_rerun()
+
+# =======================
+# Page Routing
+# =======================
+if __name__ == "__main__":
+    if "page" not in st.session_state:
+        st.session_state.page = "main"
+    if st.session_state.page == "game":
+        game()
+    else:
+        main()
