@@ -113,7 +113,7 @@ def predict_image(image_hash: str, _image: Image.Image):
 def welcome():
     try:
         logo_image = Image.open("logo.png")
-        st.image(logo_image, width=300)
+        st.image(logo_image, width=800)
     except Exception as e:
         st.write("")
 
