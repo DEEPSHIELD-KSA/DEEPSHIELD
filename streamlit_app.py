@@ -78,11 +78,12 @@ def get_image_hash(image: Image.Image) -> str:
     image.save(buf, format="PNG")
     return hashlib.sha256(buf.getvalue()).hexdigest()
 
-# Cache predictions based on the image hash
+# Cache predictions based on the image hash.
+# The _image parameter is not hashed, so caching is only based on image_hash.
 @st.cache_data(show_spinner=False)
-def predict_image(image_hash: str, image: Image.Image):
+def predict_image(image_hash: str, _image: Image.Image):
     model = load_model()
-    return model(image)
+    return model(_image)
 
 # Helper function to rerun the script
 def rerun():
