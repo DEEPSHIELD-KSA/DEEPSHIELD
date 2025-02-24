@@ -52,8 +52,9 @@ def fetch_real_image():
 def fetch_fake_image():
     """
     Fetch a fake image.
-    Here we simply return a fake image from the 'game_fake' folder if available,
-    otherwise falling back to a sample fake image from the 'samples' directory.
+    This function now first looks in the 'game_fake' directory for images.
+    If available, a random fake image from there will be returned.
+    Otherwise, it falls back to the sample fake image in the 'samples' directory.
     """
     # Try dedicated fake images folder first
     if os.path.exists("game_fake"):
@@ -308,19 +309,22 @@ def game():
         st.session_state.round_submitted = False
         st.session_state.round_result = None
 
-    # Display images side by side (removed output_format parameter)
+    # Display images side by side with fixed size
+    fixed_size = (300, 300)
+    left_fixed = st.session_state.current_round_data["left_image"].resize(fixed_size)
+    right_fixed = st.session_state.current_round_data["right_image"].resize(fixed_size)
     col1, col2 = st.columns(2)
     with col1:
         st.image(
-            st.session_state.current_round_data["left_image"],
+            left_fixed,
             caption="Left Image",
-            use_container_width=True
+            use_container_width=False
         )
     with col2:
         st.image(
-            st.session_state.current_round_data["right_image"],
+            right_fixed,
             caption="Right Image",
-            use_container_width=True
+            use_container_width=False
         )
 
     # User selection and submission
