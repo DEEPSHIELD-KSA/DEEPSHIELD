@@ -97,7 +97,7 @@ def rerun():
 # =======================
 def main():
     # Add a logo at the top center
-    st.image("logo.png", use_container_width=True)  # Replace with your logo path
+     st.image("logo.png", width=300)   # Replace with your logo path
 
     # Add a title and description
     st.title("Deepfake Detection System")
@@ -115,7 +115,7 @@ def main():
             rerun()
     
     # Main Content: Upload or choose sample image
-    col1, col2 = st.columns([3, 2])
+    col1, col2 = st.columns([4, 3])
     with col1:
         st.markdown("### 📤 Image Analysis Zone")
         uploaded_file = st.file_uploader("", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
@@ -194,76 +194,89 @@ def main():
 # Game Page: Swipe-based Detection Challenge
 # =======================
 def game():
-    # Initialize game state variables if not already set
-    if 'game_round' not in st.session_state:
+    st.title("Deepfake Game")
+    st.write("Guess which image is real! You have 5 rounds.")
+
+    # Initialize game state if not already present
+    if "game_score" not in st.session_state:
+        st.session_state.game_score = 0
+    if "game_round" not in st.session_state:
         st.session_state.game_round = 1
-    if 'score' not in st.session_state:
-        st.session_state.score = 0
-    if 'current_image' not in st.session_state:
-        st.session_state.current_image = random.choice(['real', 'fake'])
-    
-    # End game after 5 rounds
+
+    # When the game is over, show final score
     if st.session_state.game_round > 5:
-        st.markdown(f"### Game Over! Your score: {st.session_state.score} / 5")
-        if st.button("Play Again", key="play_again"):
+        st.write(f"**Game Over! Your score: {st.session_state.game_score}/5**")
+        if st.button("Play Again"):
+            st.session_state.game_score = 0
             st.session_state.game_round = 1
-            st.session_state.score = 0
-            st.session_state.current_image = random.choice(['real', 'fake'])
-            rerun()
+            st.session_state.used_real_images = set()  # Reset used images
+            st.session_state.pop("current_round_data", None)
+            st.session_state.pop("round_submitted", None)
+            st.session_state.pop("round_result", None)
+            st.experimental_rerun()
         return
-    
-    # Game Header and Progress Indicator
-    st.markdown(f"""
-        <div style="text-align: center; padding: 1rem 0;">
-            <h1 style="font-size: 2.5rem; margin: 0; color: #00bcd4;">🕹️ Detection Challenge</h1>
-            <p style="font-size: 1.1rem; opacity:0.9;">Spot the real one! Round {st.session_state.game_round}/5</p>
-            <div style="background: #00bcd4; width: {(st.session_state.game_round - 1)/5 * 100}%; height: 4px; margin: 0 auto;"></div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    # Display current image based on game state, with image size set to 800x800 pixels
-    if st.session_state.current_image == 'real':
-        real_images = [os.path.join("game_real", f) for f in os.listdir("game_real") if f.lower().endswith(".jpg")]
-        image_path = random.choice(real_images) if real_images else "samples/real_sample.jpg"
-    else:
-        image_path = "samples/fake_sample.jpg"
-    
-    image = Image.open(image_path)
-    image = image.resize((800, 800))
-    st.image(image, caption="Swipe left for REAL, right for FAKE", use_container_width=False)
-    
-    # Buttons for swiping: Left = Real, Right = Fake (automatically move to the next round)
+
+    st.write(f"Round {st.session_state.game_round} of 5")
+
+    # Create or load the current round's data
+    if "current_round_data" not in st.session_state:
+        # Fetch one real and one fake image
+        real_image = fetch_real_image()
+        fake_image = fetch_fake_image()
+        if real_image is None or fake_image is None:
+            st.error("Failed to load images. Please try again.")
+            return
+
+        # Randomize the position of the images
+        if random.choice([True, False]):
+            left_image, right_image = real_image, fake_image
+            correct_answer = "Left"
+        else:
+            left_image, right_image = fake_image, real_image
+            correct_answer = "Right"
+
+        st.session_state.current_round_data = {
+            "left_image": left_image,
+            "right_image": right_image,
+            "correct_answer": correct_answer,
+        }
+        st.session_state.round_submitted = False
+
+    # Display images side by side
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("Swipe Left (Real)", key="swipe_left"):
-            guess = 'real'
-            if guess == st.session_state.current_image:
-                st.success("Correct!")
-                st.session_state.score += 1
-            else:
-                st.error("Incorrect!")
-            st.session_state.game_round += 1
-            st.session_state.current_image = random.choice(['real', 'fake'])
-            rerun()
+        st.image(st.session_state.current_round_data["left_image"], caption="Left Image", use_container_width=True)
     with col2:
-        if st.button("Swipe Right (Fake)", key="swipe_right"):
-            guess = 'fake'
-            if guess == st.session_state.current_image:
-                st.success("Correct!")
-                st.session_state.score += 1
-            else:
-                st.error("Incorrect!")
-            st.session_state.game_round += 1
-            st.session_state.current_image = random.choice(['real', 'fake'])
-            rerun()
+        st.image(st.session_state.current_round_data["right_image"], caption="Right Image", use_container_width=True)
 
-# =======================
-# Page Routing
-# =======================
-if __name__ == "__main__":
-    if "page" not in st.session_state:
+    # Use a placeholder container for the input controls (radio and submit button)
+    if not st.session_state.round_submitted:
+        control_container = st.empty()
+        with control_container.container():
+            user_choice = st.radio("Which image is real?", ["Left", "Right"])
+            if st.button("Submit", key="submit"):
+                if user_choice == st.session_state.current_round_data["correct_answer"]:
+                    st.session_state.game_score += 1
+                    st.session_state.round_result = "Correct! 🎉"
+                else:
+                    st.session_state.round_result = "Wrong! 😢"
+                st.session_state.round_submitted = True
+                control_container.empty()  # Remove the radio and submit button immediately
+
+    # If the answer has been submitted, display the result and a Next Round button
+    if st.session_state.round_submitted:
+        if st.session_state.round_result == "Correct! 🎉":
+            st.success(st.session_state.round_result)
+        else:
+            st.error(st.session_state.round_result)
+        if st.button("Next Round"):
+            st.session_state.game_round += 1
+            st.session_state.pop("current_round_data", None)
+            st.session_state.pop("round_submitted", None)
+            st.session_state.pop("round_result", None)
+            st.experimental_rerun()
+
+    # Always show a button to go back to the home page
+    if st.button("Go to Home"):
         st.session_state.page = "main"
-    if st.session_state.page == "game":
-        game()
-    else:
-        main()
+        st.experimental_rerun()
