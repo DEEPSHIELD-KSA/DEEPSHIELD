@@ -146,6 +146,7 @@ def main():
             if "round_result" in st.session_state:
                 st.session_state.pop("round_result")
             st.session_state.page = "game"
+            st.rerun()  # Using st.rerun() instead of st.experimental_rerun()
     
     col1, col2 = st.columns([4, 3])
     with col1:
@@ -257,11 +258,11 @@ def game():
                 st.session_state.pop("round_submitted") 
             if "round_result" in st.session_state:
                 st.session_state.pop("round_result")
-            st.experimental_rerun()
+            st.rerun()  # Using st.rerun() instead of st.experimental_rerun()
         
         if st.button("Return to Home"):
             st.session_state.page = "main"
-            st.experimental_rerun()
+            st.rerun()  # Using st.rerun() instead of st.experimental_rerun()
         return
 
     # Display current round
@@ -281,7 +282,7 @@ def game():
             st.error("Could not load game images. Please check that your 'game_real' and 'samples' directories contain valid images.")
             if st.button("Return to Main Page"):
                 st.session_state.page = "main"
-                st.experimental_rerun()
+                st.rerun()  # Using st.rerun() instead of st.experimental_rerun()
             return
 
         # Randomly decide which side gets the real image
@@ -332,7 +333,7 @@ def game():
                 else:
                     st.session_state.round_result = "Wrong! 😢"
                 st.session_state.round_submitted = True
-                st.experimental_rerun()
+                st.rerun()  # Using st.rerun() instead of st.experimental_rerun()
 
     # Display result after submission
     if "round_submitted" in st.session_state and st.session_state.round_submitted:
@@ -349,13 +350,13 @@ def game():
                 st.session_state.pop("round_submitted")
             if "round_result" in st.session_state:
                 st.session_state.pop("round_result")
-            st.experimental_rerun()
+            st.rerun()  # Using st.rerun() instead of st.experimental_rerun()
 
     # Return to main page button
     st.markdown("---")
     if st.button("Exit Game", use_container_width=True):
         st.session_state.page = "main"
-        st.experimental_rerun()
+        st.rerun()  # Using st.rerun() instead of st.experimental_rerun()
 
 # =======================
 # Page Routing
