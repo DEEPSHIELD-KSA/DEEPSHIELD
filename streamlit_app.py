@@ -135,65 +135,62 @@ def main():
             st.image(image, use_container_width=True, caption="Selected Image Preview")
     
     # Analysis Section
-    if uploaded_file or sample_option != "Select":
-        try:
-            with st.spinner("🔬 Scanning image for AI fingerprints..."):
-                # Use caching for predictions: compute image hash and get prediction
-                image_hash = get_image_hash(image)
-                result = predict_image(image_hash, image)
-                scores = {r["label"].lower(): r["score"] for r in result}
-            st.markdown("---")
-            st.markdown("### 📊 Detection Report")
-            
-            # Animated Metrics
-            cols = st.columns(2)
-            with cols[0]:
-                st.markdown(f"""
-                    <div class="metric-box">
-                        <h3 style="margin:0; color: #00bcd4">REAL</h3>
-                        <h1 style="margin:0; font-size: 2.5rem">{scores.get('real', 0)*100:.2f}%</h1>
-                    </div>
-                """, unsafe_allow_html=True)
-            with cols[1]:
-                st.markdown(f"""
-                    <div class="metric-box">
-                        <h3 style="margin:0; color: #00bcd4">FAKE</h3>
-                        <h1 style="margin:0; font-size: 2.5rem">{scores.get('fake', 0)*100:.2f}%</h1>
-                    </div>
-                """, unsafe_allow_html=True)
-            
-            # Enhanced Chart using Altair
-            chart_data = pd.DataFrame({
-                "Category": ["Real", "Fake"],
-                "Confidence": [scores.get("real", 0), scores.get("fake", 0)]
-            })
-            chart = alt.Chart(chart_data).mark_bar(size=40).encode(
-                x=alt.X("Category", title="", axis=alt.Axis(labelAngle=0)),
-                y=alt.Y("Confidence", title="Confidence", scale=alt.Scale(domain=[0,1])),
-                color=alt.Color("Category", scale=alt.Scale(domain=["Real", "Fake"],
-                               range=["#00bcd4", "#00bcd4"]), legend=None),
-                tooltip=["Category", "Confidence"]
-            ).properties(height=200)
-            st.altair_chart(chart, use_container_width=True)
-            
-            # Result Badge
-            final_pred = max(scores, key=scores.get)
-            if final_pred == "fake":
-                st.markdown(f"""
-                    <div style="background: rgba(0,188,212,0.2); padding: 1rem; border-radius: 15px; border-left: 5px solid #00bcd4;">
-                        <h3 style="margin:0;">🚨 AI Detected! ({scores[final_pred]*100:.2f}% confidence)</h3>
-                        <p style="margin:0; opacity:0.8;">This image shows signs of artificial generation</p>
-                    </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.markdown(f"""
-                    <div style="background: rgba(0,188,212,0.2); padding: 1rem; border-radius: 15px; border-left: 5px solid #00bcd4;">
-                        <h3 style="margin:0;">✅ Authentic Content ({scores[final_pred]*100:.2f}% confidence)</h3>
-                        <p style="margin:0; opacity:0.8;">No significant AI manipulation detected</p>
-                    </div>
-                """, unsafe_allow_html=True)
-        except Exception as e:
-            st.error(f"🔧 Analysis error: {str(e)}")
+   if uploaded_file or sample_option != "Select":
+    try:
+        with st.spinner("🔬 Scanning image for AI fingerprints..."):
+            image_hash = get_image_hash(image)
+            result = predict_image(image_hash, image)
+            scores = {r["label"].lower(): r["score"] for r in result}
+        st.markdown("---")
+        st.markdown("### 📊 Detection Report")
+        
+        cols = st.columns(2)
+        with cols[0]:
+            st.markdown(f"""
+                <div class="metric-box">
+                    <h3 style="margin:0; color: #00ff88">REAL</h3>
+                    <h1 style="margin:0; font-size: 2.5rem">{scores.get('real', 0)*100:.2f}%</h1>
+                </div>
+            """, unsafe_allow_html=True)
+        with cols[1]:
+            st.markdown(f"""
+                <div class="metric-box">
+                    <h3 style="margin:0; color: #ff4d4d">FAKE</h3>
+                    <h1 style="margin:0; font-size: 2.5rem">{scores.get('fake', 0)*100:.2f}%</h1>
+                </div>
+            """, unsafe_allow_html=True)
+        
+        chart_data = pd.DataFrame({
+            "Category": ["Real", "Fake"],
+            "Confidence": [scores.get("real", 0), scores.get("fake", 0)]
+        })
+        chart = alt.Chart(chart_data).mark_bar(size=40).encode(
+            x=alt.X("Category", title="", axis=alt.Axis(labelAngle=0)),
+            y=alt.Y("Confidence", title="Confidence", scale=alt.Scale(domain=[0,1])),
+            color=alt.Color("Category", scale=alt.Scale(domain=["Real", "Fake"],
+                           range=["#00ff88", "#ff4d4d"]), legend=None),
+            tooltip=["Category", "Confidence"]
+        ).properties(height=200)
+        st.altair_chart(chart, use_container_width=True)
+        
+        final_pred = max(scores, key=scores.get)
+        if final_pred == "fake":
+            st.markdown(f"""
+                <div style="background: rgba(255,77,77,0.2); padding: 1rem; border-radius: 15px; border-left: 5px solid #ff4d4d;">
+                    <h3 style="margin:0;">🚨 AI Detected! ({scores[final_pred]*100:.2f}% confidence)</h3>
+                    <p style="margin:0; opacity:0.8;">This image shows signs of artificial generation</p>
+                </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+                <div style="background: rgba(0,255,136,0.2); padding: 1rem; border-radius: 15px; border-left: 5px solid #00ff88;">
+                    <h3 style="margin:0;">✅ Authentic Content ({scores[final_pred]*100:.2f}% confidence)</h3>
+                    <p style="margin:0; opacity:0.8;">No significant AI manipulation detected</p>
+                </div>
+            """, unsafe_allow_html=True)
+    except Exception as e:
+        st.error(f"🔧 Analysis error: {str(e)}")
+
 
 # =======================
 # Game Page: Swipe-based Detection Challenge
@@ -228,7 +225,6 @@ def game():
     
     # Display current image based on game state, with image size set to 800x800 pixels
     if st.session_state.current_image == 'real':
-        # Choose a random JPG from the /game_real directory
         real_images = [os.path.join("game_real", f) for f in os.listdir("game_real") if f.lower().endswith(".jpg")]
         image_path = random.choice(real_images) if real_images else "samples/real_sample.jpg"
     else:
@@ -238,7 +234,7 @@ def game():
     image = image.resize((800, 800))
     st.image(image, caption="Swipe left for REAL, right for FAKE", use_container_width=False)
     
-    # Buttons for swiping: Left = Real, Right = Fake
+    # Buttons for swiping: Left = Real, Right = Fake (automatically move to the next round)
     col1, col2 = st.columns(2)
     with col1:
         if st.button("Swipe Left (Real)", key="swipe_left"):
@@ -262,12 +258,6 @@ def game():
             st.session_state.game_round += 1
             st.session_state.current_image = random.choice(['real', 'fake'])
             rerun()
-    
-    # "Next Round" button for manual progression without a swipe
-    if st.button("Next Round", key="next_round"):
-        st.session_state.game_round += 1
-        st.session_state.current_image = random.choice(['real', 'fake'])
-        rerun()
 
 # =======================
 # Page Routing
