@@ -1,4 +1,3 @@
-!pip install streamlit transformers pandas altair pillow
 
 import streamlit as st
 from PIL import Image
