@@ -52,8 +52,8 @@ def fetch_real_image():
 def fetch_fake_image():
     """
     Fetch a fake image.
-    Here we simply return a default fake image from the 'samples' directory.
-    Adjust this function if you have a dedicated folder for fake images.
+    Here we simply return a fake image from the 'game_fake' folder if available,
+    otherwise falling back to a sample fake image from the 'samples' directory.
     """
     # Try dedicated fake images folder first
     if os.path.exists("game_fake"):
@@ -77,6 +77,13 @@ def fetch_fake_image():
         st.error("Error: Fake image sample not found at 'samples/fake_sample.jpg'")
         return None
 # ----- End of helper functions for fetching images -----
+
+# Helper function for page reruns
+def rerun():
+    try:
+        st.rerun()
+    except AttributeError:
+        st.experimental_rerun()
 
 # Set page config before any other Streamlit commands
 st.set_page_config(page_title="Deepfake Detective", page_icon="🕵️", layout="centered")
@@ -146,7 +153,7 @@ def main():
             if "round_result" in st.session_state:
                 st.session_state.pop("round_result")
             st.session_state.page = "game"
-            st.rerun()  # Using st.rerun() instead of st.experimental_rerun()
+            rerun()
     
     col1, col2 = st.columns([4, 3])
     with col1:
@@ -258,11 +265,11 @@ def game():
                 st.session_state.pop("round_submitted") 
             if "round_result" in st.session_state:
                 st.session_state.pop("round_result")
-            st.rerun()  # Using st.rerun() instead of st.experimental_rerun()
+            rerun()
         
         if st.button("Return to Home"):
             st.session_state.page = "main"
-            st.rerun()  # Using st.rerun() instead of st.experimental_rerun()
+            rerun()
         return
 
     # Display current round
@@ -282,7 +289,7 @@ def game():
             st.error("Could not load game images. Please check that your 'game_real' and 'samples' directories contain valid images.")
             if st.button("Return to Main Page"):
                 st.session_state.page = "main"
-                st.rerun()  # Using st.rerun() instead of st.experimental_rerun()
+                rerun()
             return
 
         # Randomly decide which side gets the real image
@@ -301,21 +308,19 @@ def game():
         st.session_state.round_submitted = False
         st.session_state.round_result = None
 
-    # Display images side by side
+    # Display images side by side (removed output_format parameter)
     col1, col2 = st.columns(2)
     with col1:
         st.image(
             st.session_state.current_round_data["left_image"],
             caption="Left Image",
-            use_container_width=True,
-            output_format="JPEG"
+            use_container_width=True
         )
     with col2:
         st.image(
             st.session_state.current_round_data["right_image"],
             caption="Right Image",
-            use_container_width=True,
-            output_format="JPEG"
+            use_container_width=True
         )
 
     # User selection and submission
@@ -333,7 +338,7 @@ def game():
                 else:
                     st.session_state.round_result = "Wrong! 😢"
                 st.session_state.round_submitted = True
-                st.rerun()  # Using st.rerun() instead of st.experimental_rerun()
+                rerun()
 
     # Display result after submission
     if "round_submitted" in st.session_state and st.session_state.round_submitted:
@@ -350,13 +355,13 @@ def game():
                 st.session_state.pop("round_submitted")
             if "round_result" in st.session_state:
                 st.session_state.pop("round_result")
-            st.rerun()  # Using st.rerun() instead of st.experimental_rerun()
+            rerun()
 
     # Return to main page button
     st.markdown("---")
     if st.button("Exit Game", use_container_width=True):
         st.session_state.page = "main"
-        st.rerun()  # Using st.rerun() instead of st.experimental_rerun()
+        rerun()
 
 # =======================
 # Page Routing
