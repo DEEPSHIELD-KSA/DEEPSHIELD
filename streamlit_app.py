@@ -7,6 +7,9 @@ import requests
 import os
 import random
 
+# Set page config before any other Streamlit commands
+st.set_page_config(page_title="Deepfake Detective", page_icon="🕵️", layout="centered")
+
 # Custom CSS for styling
 st.markdown("""
     <style>
@@ -63,8 +66,6 @@ st.markdown("""
     
     </style>
 """, unsafe_allow_html=True)
-
-st.set_page_config(page_title="Deepfake Detective", page_icon="🕵️", layout="centered")
 
 # Load the deepfake detection model
 @st.cache_resource
@@ -202,3 +203,11 @@ def game():
     # ... [Keep existing game logic but add styling to elements] ...
 
 # ... [Keep the existing page routing logic] ...
+
+if __name__ == "__main__":
+    if "page" not in st.session_state:
+        st.session_state.page = "main"
+    if st.session_state.page == "game":
+        game()
+    else:
+        main()
