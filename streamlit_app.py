@@ -10,13 +10,52 @@ import os
 
 # ----- Helper functions remain unchanged -----
 def fetch_real_image():
-    # ... [keep original implementation] ...
+    # Use the "game_real" directory for real images.
+    real_dir = "game_real"
+    if not os.path.exists(real_dir):
+        st.error("Error: 'game_real' directory not found. Please create it and add image files.")
+        return None
+    real_images = [os.path.join(real_dir, f) for f in os.listdir(real_dir) if f.lower().endswith((".jpg", ".jpeg", ".png"))]
+    if not real_images:
+        st.error("Error: No images found in 'game_real' directory. Please add some image files.")
+        return None
+    if "used_real_images" not in st.session_state:
+        st.session_state.used_real_images = set()
+    available_images = [img for img in real_images if img not in st.session_state.used_real_images]
+    if not available_images:
+        st.session_state.used_real_images = set()
+        available_images = real_images
+    selected_image = random.choice(available_images)
+    st.session_state.used_real_images.add(selected_image)
+    try:
+        return Image.open(selected_image).copy()
+    except Exception as e:
+        st.error(f"Error loading image {selected_image}: {str(e)}")
+        return None
 
 def fetch_fake_image():
-    # ... [keep original implementation] ...
+    # Use the "Game_Fake" directory for fake images.
+    fake_dir = "Game_Fake"
+    if not os.path.exists(fake_dir):
+        st.error("Error: 'Game_Fake' directory not found. Please create it and add fake images.")
+        return None
+    fake_images = [os.path.join(fake_dir, f) for f in os.listdir(fake_dir) if f.lower().endswith((".jpg", ".jpeg", ".png"))]
+    if not fake_images:
+        st.error("Error: No images found in 'Game_Fake' directory. Please add some fake images.")
+        return None
+    selected_image = random.choice(fake_images)
+    try:
+        return Image.open(selected_image).copy()
+    except Exception as e:
+        st.error(f"Error loading fake image {selected_image}: {str(e)}")
+        return None
 
 def rerun():
     # ... [keep original implementation] ...
+    try:
+        st.rerun()
+    except AttributeError:
+        st.experimental_rerun()
 
 # =======================
 # Modern CSS Styling
@@ -264,18 +303,4 @@ def main():
             except Exception as e:
                 st.error(f"🔧 Analysis error: {str(e)}")
 
-# =======================
-# Game Page (Updated Design)
-# =======================
 
-
-if __name__ == "__main__":
-    if "page" not in st.session_state:
-        st.session_state.page = "welcome"
-        
-    if st.session_state.page == "game":
-        game()
-    elif st.session_state.page == "main":
-        main()
-    else:
-        welcome()
