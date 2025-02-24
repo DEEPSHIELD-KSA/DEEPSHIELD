@@ -117,13 +117,13 @@ def welcome():
     except Exception as e:
         st.write("")
 
-    st.title("Deepfake Detective 🕵️")
+    st.title("    DeepShield    ")
 
     st.markdown("""
     <div class="welcome-section">
-        <h2>Welcome to the Deepfake Detection Project</h2>
+        <h3>Welcome to the Deepfake Detection final project</h3>
         <p>This application helps you detect AI-generated images using state-of-the-art machine learning models. 
-        Explore the capabilities of deepfake detection through image analysis or test your skills in the detection challenge game!</p>
+        Explore the capabilities of deepfake detection through image analysis or test your skill in the detection challenge game!</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -155,34 +155,9 @@ def welcome():
         """, unsafe_allow_html=True)
 
     st.markdown("---")
-    st.markdown("""
-    <div class="welcome-section">
-        <h2>📝 Project Notes</h2>
-        
-        <h3>Technical Details</h3>
-        <ul>
-            <li>Built with 🤗 Transformers and Streamlit</li>
-            <li>Uses a fine-tuned ViT (Vision Transformer) model</li>
-            <li>Model trained on diverse dataset of real and AI-generated images</li>
-            <li>Continuous updates to improve accuracy and reliability</li>
-        </ul>
 
-        <h3>Ethical Considerations</h3>
-        <ul>
-            <li>Intended for educational purposes only</li>
-            <li>Results should not be considered definitive proof of authenticity</li>
-            <li>AI detection systems can have inherent biases</li>
-            <li>Always verify critical content through multiple methods</li>
-        </ul>
 
-        <h3>Future Directions</h3>
-        <ul>
-            <li>Video analysis capabilities</li>
-            <li>Detailed explainability features</li>
-            <li>Multi-model consensus system</li>
-            <li>Real-time webcam analysis</li>
-        </ul>
-    </div>
+
     """, unsafe_allow_html=True)
 
     if st.button("Get Started →", use_container_width=True, type="primary"):
@@ -195,7 +170,7 @@ def welcome():
 def main():
     try:
         logo_image = Image.open("logo.png")
-        st.image(logo_image, width=300)
+        st.image(logo_image, width=800)
     except Exception as e:
         st.write("")
 
