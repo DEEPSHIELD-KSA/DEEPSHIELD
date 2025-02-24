@@ -215,7 +215,7 @@ def game():
     # End game after 5 rounds
     if st.session_state.game_round > 5:
         st.markdown(f"### Game Over! Your score: {st.session_state.score} / 5")
-        if st.button("Play Again"):
+        if st.button("Play Again", key="play_again"):
             st.session_state.game_round = 1
             st.session_state.score = 0
             st.session_state.current_image = random.choice(['real', 'fake'])
@@ -239,7 +239,7 @@ def game():
     # Buttons for swiping: Left = Real, Right = Fake
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("Swipe Left (Real)"):
+        if st.button("Swipe Left (Real)", key="swipe_left"):
             guess = 'real'
             if guess == st.session_state.current_image:
                 st.success("Correct!")
@@ -250,7 +250,7 @@ def game():
             st.session_state.current_image = random.choice(['real', 'fake'])
             rerun()
     with col2:
-        if st.button("Swipe Right (Fake)"):
+        if st.button("Swipe Right (Fake)", key="swipe_right"):
             guess = 'fake'
             if guess == st.session_state.current_image:
                 st.success("Correct!")
