@@ -199,9 +199,19 @@ def game():
 
     col1, col2 = st.columns(2)
     with col1:
-        st.image(st.session_state.current_round_data["left_image"], caption="Left Image", use_container_width=True)
+        st.image(
+            st.session_state.current_round_data["left_image"],
+            caption="Left Image",
+            use_container_width=True,
+            key=f"left_{st.session_state.game_round}"
+        )
     with col2:
-        st.image(st.session_state.current_round_data["right_image"], caption="Right Image", use_container_width=True)
+        st.image(
+            st.session_state.current_round_data["right_image"],
+            caption="Right Image",
+            use_container_width=True,
+            key=f"right_{st.session_state.game_round}"
+        )
 
     if not st.session_state.round_submitted:
         control_container = st.empty()
@@ -231,14 +241,3 @@ def game():
     if st.button("Go to Home"):
         st.session_state.page = "main"
         rerun()
-
-# =======================
-# Page Routing
-# =======================
-if __name__ == "__main__":
-    if "page" not in st.session_state:
-        st.session_state.page = "main"
-    if st.session_state.page == "game":
-        game()
-    else:
-        main()
