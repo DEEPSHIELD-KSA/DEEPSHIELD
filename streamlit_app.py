@@ -111,17 +111,20 @@ def rerun():
 # =======================
 def main():
     # Display a centered logo with size 300x300
-      st.image("logo.png", use_container_width=True)  # Replace with your logo path
-
+    st.markdown("""
+    <div style="text-align: center;">
+        <img src="logo.png" width="300" height="300">
+    </div>
+    """, unsafe_allow_html=True)
     
     st.title("Deepfake Detection System")
     
     with st.sidebar:
         st.markdown("""
-            <div style="border-left: 3px solid #00bcd4; padding-left: 1rem; margin: 1rem 0;">
-                <h2 style="color: #00bcd4;">🔍 Navigation</h2>
-                <p>Test your skills in our detection challenge!</p>
-            </div>
+        <div style="border-left: 3px solid #00bcd4; padding-left: 1rem; margin: 1rem 0;">
+            <h2 style="color: #00bcd4;">🔍 Navigation</h2>
+            <p>Test your skills in our detection challenge!</p>
+        </div>
         """, unsafe_allow_html=True)
         if st.button("🎮 Start Detection Game", use_container_width=True):
             st.session_state.page = "game"
@@ -154,7 +157,7 @@ def main():
             st.markdown("---")
             st.markdown("### 📊 Detection Report")
             
-            # Instead of one combined chart, display two separate charts:
+            # Display two separate charts: left for Real, right for Fake
             col_chart_left, col_chart_right = st.columns(2)
             with col_chart_left:
                 real_chart_data = pd.DataFrame({
@@ -182,17 +185,17 @@ def main():
             final_pred = max(scores, key=scores.get)
             if final_pred == "fake":
                 st.markdown(f"""
-                    <div style="background: rgba(255,77,77,0.2); padding: 1rem; border-radius: 15px; border-left: 5px solid #ff4d4d;">
-                        <h3 style="margin:0;">🚨 AI Detected! ({scores[final_pred]*100:.2f}% confidence)</h3>
-                        <p style="margin:0; opacity:0.8;">This image shows signs of artificial generation</p>
-                    </div>
+                <div style="background: rgba(255,77,77,0.2); padding: 1rem; border-radius: 15px; border-left: 5px solid #ff4d4d;">
+                    <h3 style="margin:0;">🚨 AI Detected! ({scores[final_pred]*100:.2f}% confidence)</h3>
+                    <p style="margin:0; opacity:0.8;">This image shows signs of artificial generation</p>
+                </div>
                 """, unsafe_allow_html=True)
             else:
                 st.markdown(f"""
-                    <div style="background: rgba(0,255,136,0.2); padding: 1rem; border-radius: 15px; border-left: 5px solid #00ff88;">
-                        <h3 style="margin:0;">✅ Authentic Content ({scores[final_pred]*100:.2f}% confidence)</h3>
-                        <p style="margin:0; opacity:0.8;">No significant AI manipulation detected</p>
-                    </div>
+                <div style="background: rgba(0,255,136,0.2); padding: 1rem; border-radius: 15px; border-left: 5px solid #00ff88;">
+                    <h3 style="margin:0;">✅ Authentic Content ({scores[final_pred]*100:.2f}% confidence)</h3>
+                    <p style="margin:0; opacity:0.8;">No significant AI manipulation detected</p>
+                </div>
                 """, unsafe_allow_html=True)
         except Exception as e:
             st.error(f"🔧 Analysis error: {str(e)}")
