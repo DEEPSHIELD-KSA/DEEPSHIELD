@@ -66,13 +66,6 @@ def predict_image(image_hash: str, _image: Image.Image):
     model = load_model()
     return model(_image)
 
-# Helper function to rerun the script safely
-def rerun():
-    try:
-        st.experimental_rerun()
-    except AttributeError:
-        st.write("Please update Streamlit to a newer version to support page reruns.")
-
 # =======================
 # Main Page: Image Analysis
 # =======================
@@ -95,7 +88,6 @@ def main():
         """, unsafe_allow_html=True)
         if st.button("🎮 Start Detection Game", use_container_width=True):
             st.session_state.page = "game"
-            rerun()
     
     col1, col2 = st.columns([4, 3])
     with col1:
@@ -180,7 +172,6 @@ def game():
             st.session_state.pop("current_round_data", None)
             st.session_state.pop("round_submitted", None)
             st.session_state.pop("round_result", None)
-            rerun()
         return
 
     st.write(f"Round {st.session_state.game_round} of 5")
@@ -245,11 +236,9 @@ def game():
             st.session_state.pop("current_round_data", None)
             st.session_state.pop("round_submitted", None)
             st.session_state.pop("round_result", None)
-            rerun()
 
     if st.button("Go to Home"):
         st.session_state.page = "main"
-        rerun()
 
 # =======================
 # Page Routing
