@@ -14,57 +14,56 @@ st.set_page_config(page_title="Deepfake Detective", page_icon="🕵️", layout=
 # Custom CSS for dark blue and cyan-blue theme
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&display=swap');
-    
-    * {
-        font-family: 'Space Grotesk', sans-serif;
-    }
-    
-    .main {
-        background: linear-gradient(135deg, #001f3f 0%, #00bcd4 100%);
-        color: #ffffff;
-    }
-    
-    .stButton>button {
-        background: #00bcd4;
-        color: white;
-        border-radius: 15px;
-        padding: 10px 24px;
-        border: none;
-        transition: all 0.3s ease;
-    }
-    
-    .stButton>button:hover {
-        background: #008ba3;
-        transform: scale(1.05);
-    }
-    
-    .stFileUploader>div>div>div>div {
-        color: #ffffff;
-        border: 2px dashed #00bcd4;
-        background: rgba(0, 188, 212, 0.1);
-        border-radius: 15px;
-    }
-    
-    .metric-box {
-        background: rgba(0, 188, 212, 0.1);
-        padding: 20px;
-        border-radius: 15px;
-        margin: 10px 0;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-    
-    .game-image {
-        border: 3px solid transparent;
-        border-radius: 15px;
-        transition: all 0.3s ease;
-    }
-    
-    .game-image:hover {
-        transform: scale(1.02);
-        cursor: pointer;
-    }
-    
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&display=swap');
+        
+        * {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        
+        .main {
+            background: linear-gradient(135deg, #001f3f 0%, #00bcd4 100%);
+            color: #ffffff;
+        }
+        
+        .stButton>button {
+            background: #00bcd4;
+            color: white;
+            border-radius: 15px;
+            padding: 10px 24px;
+            border: none;
+            transition: all 0.3s ease;
+        }
+        
+        .stButton>button:hover {
+            background: #008ba3;
+            transform: scale(1.05);
+        }
+        
+        .stFileUploader>div>div>div>div {
+            color: #ffffff;
+            border: 2px dashed #00bcd4;
+            background: rgba(0, 188, 212, 0.1);
+            border-radius: 15px;
+        }
+        
+        .metric-box {
+            background: rgba(0, 188, 212, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 10px 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .game-image {
+            border: 3px solid transparent;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .game-image:hover {
+            transform: scale(1.02);
+            cursor: pointer;
+        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -135,62 +134,61 @@ def main():
             st.image(image, use_container_width=True, caption="Selected Image Preview")
     
     # Analysis Section
-   if uploaded_file or sample_option != "Select":
-    try:
-        with st.spinner("🔬 Scanning image for AI fingerprints..."):
-            image_hash = get_image_hash(image)
-            result = predict_image(image_hash, image)
-            scores = {r["label"].lower(): r["score"] for r in result}
-        st.markdown("---")
-        st.markdown("### 📊 Detection Report")
-        
-        cols = st.columns(2)
-        with cols[0]:
-            st.markdown(f"""
-                <div class="metric-box">
-                    <h3 style="margin:0; color: #00ff88">REAL</h3>
-                    <h1 style="margin:0; font-size: 2.5rem">{scores.get('real', 0)*100:.2f}%</h1>
-                </div>
-            """, unsafe_allow_html=True)
-        with cols[1]:
-            st.markdown(f"""
-                <div class="metric-box">
-                    <h3 style="margin:0; color: #ff4d4d">FAKE</h3>
-                    <h1 style="margin:0; font-size: 2.5rem">{scores.get('fake', 0)*100:.2f}%</h1>
-                </div>
-            """, unsafe_allow_html=True)
-        
-        chart_data = pd.DataFrame({
-            "Category": ["Real", "Fake"],
-            "Confidence": [scores.get("real", 0), scores.get("fake", 0)]
-        })
-        chart = alt.Chart(chart_data).mark_bar(size=40).encode(
-            x=alt.X("Category", title="", axis=alt.Axis(labelAngle=0)),
-            y=alt.Y("Confidence", title="Confidence", scale=alt.Scale(domain=[0,1])),
-            color=alt.Color("Category", scale=alt.Scale(domain=["Real", "Fake"],
-                           range=["#00ff88", "#ff4d4d"]), legend=None),
-            tooltip=["Category", "Confidence"]
-        ).properties(height=200)
-        st.altair_chart(chart, use_container_width=True)
-        
-        final_pred = max(scores, key=scores.get)
-        if final_pred == "fake":
-            st.markdown(f"""
-                <div style="background: rgba(255,77,77,0.2); padding: 1rem; border-radius: 15px; border-left: 5px solid #ff4d4d;">
-                    <h3 style="margin:0;">🚨 AI Detected! ({scores[final_pred]*100:.2f}% confidence)</h3>
-                    <p style="margin:0; opacity:0.8;">This image shows signs of artificial generation</p>
-                </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.markdown(f"""
-                <div style="background: rgba(0,255,136,0.2); padding: 1rem; border-radius: 15px; border-left: 5px solid #00ff88;">
-                    <h3 style="margin:0;">✅ Authentic Content ({scores[final_pred]*100:.2f}% confidence)</h3>
-                    <p style="margin:0; opacity:0.8;">No significant AI manipulation detected</p>
-                </div>
-            """, unsafe_allow_html=True)
-    except Exception as e:
-        st.error(f"🔧 Analysis error: {str(e)}")
-
+    if uploaded_file or sample_option != "Select":
+        try:
+            with st.spinner("🔬 Scanning image for AI fingerprints..."):
+                image_hash = get_image_hash(image)
+                result = predict_image(image_hash, image)
+                scores = {r["label"].lower(): r["score"] for r in result}
+            st.markdown("---")
+            st.markdown("### 📊 Detection Report")
+            
+            cols = st.columns(2)
+            with cols[0]:
+                st.markdown(f"""
+                    <div class="metric-box">
+                        <h3 style="margin:0; color: #00ff88">REAL</h3>
+                        <h1 style="margin:0; font-size: 2.5rem">{scores.get('real', 0)*100:.2f}%</h1>
+                    </div>
+                """, unsafe_allow_html=True)
+            with cols[1]:
+                st.markdown(f"""
+                    <div class="metric-box">
+                        <h3 style="margin:0; color: #ff4d4d">FAKE</h3>
+                        <h1 style="margin:0; font-size: 2.5rem">{scores.get('fake', 0)*100:.2f}%</h1>
+                    </div>
+                """, unsafe_allow_html=True)
+            
+            chart_data = pd.DataFrame({
+                "Category": ["Real", "Fake"],
+                "Confidence": [scores.get("real", 0), scores.get("fake", 0)]
+            })
+            chart = alt.Chart(chart_data).mark_bar(size=40).encode(
+                x=alt.X("Category", title="", axis=alt.Axis(labelAngle=0)),
+                y=alt.Y("Confidence", title="Confidence", scale=alt.Scale(domain=[0, 1])),
+                color=alt.Color("Category", scale=alt.Scale(domain=["Real", "Fake"],
+                               range=["#00ff88", "#ff4d4d"]), legend=None),
+                tooltip=["Category", "Confidence"]
+            ).properties(height=200)
+            st.altair_chart(chart, use_container_width=True)
+            
+            final_pred = max(scores, key=scores.get)
+            if final_pred == "fake":
+                st.markdown(f"""
+                    <div style="background: rgba(255,77,77,0.2); padding: 1rem; border-radius: 15px; border-left: 5px solid #ff4d4d;">
+                        <h3 style="margin:0;">🚨 AI Detected! ({scores[final_pred]*100:.2f}% confidence)</h3>
+                        <p style="margin:0; opacity:0.8;">This image shows signs of artificial generation</p>
+                    </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown(f"""
+                    <div style="background: rgba(0,255,136,0.2); padding: 1rem; border-radius: 15px; border-left: 5px solid #00ff88;">
+                        <h3 style="margin:0;">✅ Authentic Content ({scores[final_pred]*100:.2f}% confidence)</h3>
+                        <p style="margin:0; opacity:0.8;">No significant AI manipulation detected</p>
+                    </div>
+                """, unsafe_allow_html=True)
+        except Exception as e:
+            st.error(f"🔧 Analysis error: {str(e)}")
 
 # =======================
 # Game Page: Swipe-based Detection Challenge
