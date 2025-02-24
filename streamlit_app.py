@@ -72,6 +72,13 @@ st.markdown("""
 def load_model():
     return pipeline("image-classification", model="dima806/deepfake_vs_real_image_detection")
 
+# Helper function to rerun the script
+def rerun():
+    try:
+        st.experimental_rerun()
+    except AttributeError:
+        st.write("Please update Streamlit to a newer version to support page reruns.")
+
 # =======================
 # Main Page: Image Analysis
 # =======================
@@ -87,7 +94,7 @@ def main():
             </p>
         </div>
     """, unsafe_allow_html=True)
-
+    
     # Sidebar with Navigation
     with st.sidebar:
         st.markdown("""
@@ -98,8 +105,8 @@ def main():
         """, unsafe_allow_html=True)
         if st.button("🎮 Start Detection Game", use_container_width=True):
             st.session_state.page = "game"
-            st.experimental_rerun()
-
+            rerun()
+    
     # Main Content: Upload or choose sample image
     col1, col2 = st.columns([3, 2])
     with col1:
@@ -115,7 +122,7 @@ def main():
                              else (Image.open("samples/real_sample.jpg") if sample_option == "Real Sample" 
                                    else Image.open("samples/fake_sample.jpg")))
             st.image(preview_image, use_container_width=True, caption="Selected Image Preview")
-
+    
     # Analysis Section
     if uploaded_file or sample_option != "Select":
         try:
@@ -132,31 +139,31 @@ def main():
                 st.markdown(f"""
                     <div class="metric-box">
                         <h3 style="margin:0; color: #00ff88">REAL</h3>
-                        <h1 style="margin:0; font-size: 2.5rem">{scores.get('real', 0) * 100:.2f}%</h1>
+                        <h1 style="margin:0; font-size: 2.5rem">{scores.get('real', 0)*100:.2f}%</h1>
                     </div>
                 """, unsafe_allow_html=True)
             with cols[1]:
                 st.markdown(f"""
                     <div class="metric-box">
                         <h3 style="margin:0; color: #ff4d4d">FAKE</h3>
-                        <h1 style="margin:0; font-size: 2.5rem">{scores.get('fake', 0) * 100:.2f}%</h1>
+                        <h1 style="margin:0; font-size: 2.5rem">{scores.get('fake', 0)*100:.2f}%</h1>
                     </div>
                 """, unsafe_allow_html=True)
-
+            
             # Enhanced Chart using Altair
             chart_data = pd.DataFrame({
                 "Category": ["Real", "Fake"],
-                "Confidence": [scores.get("real", 0), scores.get("fake", 0)],
+                "Confidence": [scores.get("real", 0), scores.get("fake", 0)]
             })
             chart = alt.Chart(chart_data).mark_bar(size=40).encode(
                 x=alt.X("Category", title="", axis=alt.Axis(labelAngle=0)),
-                y=alt.Y("Confidence", title="Confidence", scale=alt.Scale(domain=[0, 1])),
-                color=alt.Color("Category", scale=alt.Scale(domain=["Real", "Fake"], 
+                y=alt.Y("Confidence", title="Confidence", scale=alt.Scale(domain=[0,1])),
+                color=alt.Color("Category", scale=alt.Scale(domain=["Real", "Fake"],
                                range=["#00ff88", "#ff4d4d"]), legend=None),
                 tooltip=["Category", "Confidence"]
             ).properties(height=200)
             st.altair_chart(chart, use_container_width=True)
-
+            
             # Result Badge
             final_pred = max(scores, key=scores.get)
             if final_pred == "fake":
@@ -173,7 +180,6 @@ def main():
                         <p style="margin:0; opacity:0.8;">No significant AI manipulation detected</p>
                     </div>
                 """, unsafe_allow_html=True)
-
         except Exception as e:
             st.error(f"🔧 Analysis error: {str(e)}")
 
@@ -188,7 +194,7 @@ def game():
         st.session_state.score = 0
     if 'current_image' not in st.session_state:
         st.session_state.current_image = random.choice(['real', 'fake'])
-
+    
     # End game after 5 rounds
     if st.session_state.game_round > 5:
         st.markdown(f"### Game Over! Your score: {st.session_state.score} / 5")
@@ -196,23 +202,23 @@ def game():
             st.session_state.game_round = 1
             st.session_state.score = 0
             st.session_state.current_image = random.choice(['real', 'fake'])
-            st.experimental_rerun()
+            rerun()
         return
-
+    
     # Game Header and Progress Indicator
     st.markdown(f"""
         <div style="text-align: center; padding: 1rem 0;">
             <h1 style="font-size: 2.5rem; margin: 0; color: #e94560;">🕹️ Detection Challenge</h1>
             <p style="font-size: 1.1rem; opacity: 0.9;">Spot the real one! Round {st.session_state.game_round}/5</p>
-            <div style="background: #e94560; width: {(st.session_state.game_round - 1) / 5 * 100}%; height: 4px; margin: 0 auto;"></div>
+            <div style="background: #e94560; width: {(st.session_state.game_round - 1)/5 * 100}%; height: 4px; margin: 0 auto;"></div>
         </div>
     """, unsafe_allow_html=True)
-
+    
     # Display current image based on game state
     image_path = "samples/real_sample.jpg" if st.session_state.current_image == 'real' else "samples/fake_sample.jpg"
     image = Image.open(image_path)
     st.image(image, caption="Swipe left for REAL, right for FAKE", use_container_width=True)
-
+    
     # Buttons for swiping: Left = Real, Right = Fake
     col1, col2 = st.columns(2)
     with col1:
@@ -225,7 +231,7 @@ def game():
                 st.error("Incorrect!")
             st.session_state.game_round += 1
             st.session_state.current_image = random.choice(['real', 'fake'])
-            st.experimental_rerun()
+            rerun()
     with col2:
         if st.button("Swipe Right (Fake)"):
             guess = 'fake'
@@ -236,7 +242,7 @@ def game():
                 st.error("Incorrect!")
             st.session_state.game_round += 1
             st.session_state.current_image = random.choice(['real', 'fake'])
-            st.experimental_rerun()
+            rerun()
 
 # =======================
 # Page Routing
