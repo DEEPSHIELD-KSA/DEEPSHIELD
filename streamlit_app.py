@@ -3,8 +3,8 @@ from PIL import Image
 from transformers import pipeline
 import pandas as pd
 import altair as alt
-import requests
-import os
+import io
+import hashlib
 import random
 
 # Set page config before any other Streamlit commands
@@ -67,10 +67,22 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Load the deepfake detection model
+# Load the deepfake detection model (cached so it loads only once)
 @st.cache_resource
 def load_model():
     return pipeline("image-classification", model="dima806/deepfake_vs_real_image_detection")
+
+# Helper function to generate a hash for a PIL image
+def get_image_hash(image: Image.Image) -> str:
+    buf = io.BytesIO()
+    image.save(buf, format="PNG")
+    return hashlib.sha256(buf.getvalue()).hexdigest()
+
+# Cache predictions based on the image hash
+@st.cache_data(show_spinner=False)
+def predict_image(image_hash: str, image: Image.Image):
+    model = load_model()
+    return model(image)
 
 # Helper function to rerun the script
 def rerun():
@@ -118,17 +130,21 @@ def main():
     with col2:
         if uploaded_file or sample_option != "Select":
             st.markdown("### 🔍 Preview")
-            preview_image = (Image.open(uploaded_file) if uploaded_file 
-                             else (Image.open("samples/real_sample.jpg") if sample_option == "Real Sample" 
-                                   else Image.open("samples/fake_sample.jpg")))
-            st.image(preview_image, use_container_width=True, caption="Selected Image Preview")
+            if uploaded_file:
+                image = Image.open(uploaded_file)
+            elif sample_option == "Real Sample":
+                image = Image.open("samples/real_sample.jpg")
+            else:
+                image = Image.open("samples/fake_sample.jpg")
+            st.image(image, use_container_width=True, caption="Selected Image Preview")
     
     # Analysis Section
     if uploaded_file or sample_option != "Select":
         try:
             with st.spinner("🔬 Scanning image for AI fingerprints..."):
-                model = load_model()
-                result = model(preview_image)
+                # Use caching for predictions: compute image hash and get prediction
+                image_hash = get_image_hash(image)
+                result = predict_image(image_hash, image)
                 scores = {r["label"].lower(): r["score"] for r in result}
             st.markdown("---")
             st.markdown("### 📊 Detection Report")
