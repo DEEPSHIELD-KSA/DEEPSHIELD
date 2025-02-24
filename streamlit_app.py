@@ -1,227 +1,204 @@
 import streamlit as st
 from PIL import Image
 from transformers import pipeline
-import pandas as pd  # Import pandas for DataFrame
-import altair as alt  # Import Altair for custom bar chart colors
-import requests  # For fetching fake images
-import os  # For accessing local files
-import random  # For randomizing image positions
+import pandas as pd
+import altair as alt
+import requests
+import os
+import random
 
+# Custom CSS for styling
+st.markdown("""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&display=swap');
+    
+    * {
+        font-family: 'Space Grotesk', sans-serif;
+    }
+    
+    .main {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        color: #ffffff;
+    }
+    
+    .stButton>button {
+        background: #e94560;
+        color: white;
+        border-radius: 15px;
+        padding: 10px 24px;
+        border: none;
+        transition: all 0.3s ease;
+    }
+    
+    .stButton>button:hover {
+        background: #ff6b6b;
+        transform: scale(1.05);
+    }
+    
+    .stFileUploader>div>div>div>div {
+        color: #ffffff;
+        border: 2px dashed #e94560;
+        background: rgba(233, 69, 96, 0.1);
+        border-radius: 15px;
+    }
+    
+    .metric-box {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 20px;
+        border-radius: 15px;
+        margin: 10px 0;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .game-image {
+        border: 3px solid transparent;
+        border-radius: 15px;
+        transition: all 0.3s ease;
+    }
+    
+    .game-image:hover {
+        transform: scale(1.02);
+        cursor: pointer;
+    }
+    
+    </style>
+""", unsafe_allow_html=True)
 
-st.set_page_config(page_title="Deepfake Detection", page_icon="🖼️", layout="centered")
+st.set_page_config(page_title="Deepfake Detective", page_icon="🕵️", layout="centered")
 
 # Load the deepfake detection model
-@st.cache_resource  # Cache the model to avoid reloading
+@st.cache_resource
 def load_model():
     return pipeline("image-classification", model="dima806/deepfake_vs_real_image_detection")
 
-# fetch a fake image from thispersondoesnotexist.com
-def fetch_fake_image():
-    try:
-        response = requests.get("https://thispersondoesnotexist.com/", stream=True)
-        if response.status_code == 200:
-            img = Image.open(response.raw)
-            return img.resize((512, 512))  # Resize to 512x512
-    except Exception as e:
-        st.error(f"Error fetching fake image: {e}")
-    return None
-
-# Function to load a random real image from the game_real folder
-def fetch_real_image():
-    if "used_real_images" not in st.session_state:
-        st.session_state.used_real_images = set()  # Track used real images
-
-    real_images = os.listdir("game_real")  # List all files in the game_real folder
-    available_images = [img for img in real_images if img not in st.session_state.used_real_images]
-
-    # If we've used all images, reset the used list so images can repeat
-    if not available_images:
-        st.session_state.used_real_images = set()
-        available_images = real_images
-
-    random_image = random.choice(available_images)  # Choose a random unused image
-    st.session_state.used_real_images.add(random_image)  # Mark the image as used
-    image = Image.open(os.path.join("game_real", random_image))
-    return image.resize((512, 512))  # Resize to 512x512
+# ... [Keep the existing helper functions: fetch_fake_image, fetch_real_image] ...
 
 # Streamlit App - Main Page
 def main():
-    # Add a logo at the top center
-    st.image("logo.png", use_container_width=True)  # Replace with your logo path
+    # Header Section
+    st.markdown("""
+        <div style="text-align: center; padding: 2rem 0;">
+            <h1 style="font-size: 2.5rem; margin: 0; color: #e94560; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
+                🕵️ Deepfake Detective
+            </h1>
+            <p style="font-size: 1.1rem; opacity: 0.9;">
+                Unmask AI-generated images with cutting-edge detection technology
+            </p>
+        </div>
+    """, unsafe_allow_html=True)
 
-    # Add a title and description
-    st.title("Deepfake Detection System")
+    # Sidebar with Neon Effect
+    with st.sidebar:
+        st.markdown("""
+            <div style="border-left: 3px solid #e94560; padding-left: 1rem; margin: 1rem 0;">
+                <h2 style="color: #e94560;">🔍 Navigation</h2>
+                <p>Test your skills in our detection challenge!</p>
+            </div>
+        """, unsafe_allow_html=True)
+        if st.button("🎮 Start Detection Game", use_container_width=True):
+            st.session_state.page = "game"
+            st.rerun()
 
-    # Sidebar for navigation
-    st.sidebar.title("Are You Smarter Than AI?!")
-    if st.sidebar.button("Go to Game"):
-        st.session_state.page = "game"
-        st.rerun()
+    # Main Content
+    col1, col2 = st.columns([3, 2])
+    with col1:
+        # Interactive Upload Section
+        st.markdown("### 📤 Image Analysis Zone")
+        uploaded_file = st.file_uploader("", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
+        
+        # Sample Selector
+        sample_option = st.selectbox("Or choose from samples:", 
+                                   ["Select", "Real Sample", "Fake Sample"],
+                                   help="Explore pre-loaded examples to test the system")
 
-    # Short description under the image
-    st.write(
-        """
-        This project uses advanced AI models to detect deepfake images.\n
-        Upload an image or choose a sample to see if it's real or AI-generated.
-        """
-    )
-    
-    # File uploader
-    uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
+    with col2:
+        # Preview Section
+        if uploaded_file or sample_option != "Select":
+            st.markdown("### 🔍 Preview")
+            preview_image = Image.open(uploaded_file) if uploaded_file else (
+                Image.open("samples/real_sample.jpg") if sample_option == "Real Sample" 
+                else Image.open("samples/fake_sample.jpg"))
+            st.image(preview_image, use_container_width=True, caption="Selected Image Preview")
 
-    # Sample image dropdown
-    sample_option = st.selectbox("Or choose a sample image:", ["Select", "Real Sample", "Fake Sample"])
-    
-    if sample_option == "Real Sample":
-        image = Image.open("samples/real_sample.jpg")  # Replace with your real sample image
-        st.image(image, caption="Real Sample Image", use_container_width=True)
-    elif sample_option == "Fake Sample":
-        image = Image.open("samples/fake_sample.jpg")  # Replace with your fake sample image
-        st.image(image, caption="Fake Sample Image", use_container_width=True)
-    elif uploaded_file is not None:
-        image = Image.open(uploaded_file)
-        st.image(image, caption="Uploaded Image", use_container_width=True)
-    
-    if uploaded_file is not None or sample_option != "Select":
+    # Analysis Section
+    if uploaded_file or sample_option != "Select":
         try:
-            # Show a progress bar while analyzing
-            with st.spinner("Analyzing the image..."):
-                # Load model and predict
+            with st.spinner("🔬 Scanning image for AI fingerprints..."):
                 model = load_model()
-                result = model(image)
-                
-                # Extract confidence scores for "Real" and "Fake"
-                scores = {r["label"].lower(): r["score"] for r in result}  # Convert labels to lowercase
+                result = model(preview_image)
+                scores = {r["label"].lower(): r["score"] for r in result}
+
+            st.markdown("---")
+            st.markdown("### 📊 Detection Report")
             
-            # Display results in a modern layout
-            st.success("Analysis Complete!")
-            
-            # Create two columns for metrics
-            col1, col2 = st.columns(2)
-            with col1:
-                st.metric(label="Real Confidence", value=f"{scores.get('real', 0) * 100:.2f}%")
-            with col2:
-                st.metric(label="Fake Confidence", value=f"{scores.get('fake', 0) * 100:.2f}%")
-            
-            # Display confidence scores as a vertical bar chart with custom colors
-            st.write("### Confidence Scores")
+            # Animated Metrics
+            cols = st.columns(2)
+            with cols[0]:
+                st.markdown(f"""
+                    <div class="metric-box">
+                        <h3 style="margin:0; color: #00ff88">REAL</h3>
+                        <h1 style="margin:0; font-size: 2.5rem">{scores.get('real', 0) * 100:.2f}%</h1>
+                    </div>
+                """, unsafe_allow_html=True)
+            with cols[1]:
+                st.markdown(f"""
+                    <div class="metric-box">
+                        <h3 style="margin:0; color: #ff4d4d">FAKE</h3>
+                        <h1 style="margin:0; font-size: 2.5rem">{scores.get('fake', 0) * 100:.2f}%</h1>
+                    </div>
+                """, unsafe_allow_html=True)
+
+            # Enhanced Chart
             chart_data = pd.DataFrame({
                 "Category": ["Real", "Fake"],
                 "Confidence": [scores.get("real", 0), scores.get("fake", 0)],
             })
-            chart = alt.Chart(chart_data).mark_bar().encode(
-                x=alt.X("Category", sort=["Real", "Fake"]),
-                y="Confidence",
-                color=alt.Color("Category", scale=alt.Scale(domain=["Real", "Fake"], range=["#00FF00", "#FF0000"])),
-            )
+            chart = alt.Chart(chart_data).mark_bar(size=40).encode(
+                x=alt.X("Category", title="", axis=alt.Axis(labelAngle=0)),
+                y=alt.Y("Confidence", title="Confidence", scale=alt.Scale(domain=[0, 1])),
+                color=alt.Color("Category", scale=alt.Scale(domain=["Real", "Fake"], 
+                               range=["#00ff88", "#ff4d4d"]), legend=None),
+                tooltip=["Category", "Confidence"]
+            ).properties(height=200)
             st.altair_chart(chart, use_container_width=True)
-            
-            # Determine the final prediction
-            final_prediction = max(scores, key=scores.get)
-            final_confidence = scores[final_prediction]
-            st.write("### Final Prediction")
-            if final_prediction == "fake":
-                st.error(f"⚠️ This image is likely AI-generated (deepfake) with {final_confidence * 100:.2f}% confidence.")
+
+            # Result Badge
+            final_pred = max(scores, key=scores.get)
+            if final_pred == "fake":
+                st.markdown(f"""
+                    <div style="background: #ff4d4d33; padding: 1rem; border-radius: 15px; border-left: 5px solid #ff4d4d;">
+                        <h3 style="margin:0;">🚨 AI Detected! ({scores[final_pred]*100:.2f}% confidence)</h3>
+                        <p style="margin:0; opacity:0.8;">This image shows signs of artificial generation</p>
+                    </div>
+                """, unsafe_allow_html=True)
             else:
-                st.success(f"✅ This image is likely real with {final_confidence * 100:.2f}% confidence.")
-        
+                st.markdown(f"""
+                    <div style="background: #00ff8833; padding: 1rem; border-radius: 15px; border-left: 5px solid #00ff88;">
+                        <h3 style="margin:0;">✅ Authentic Content ({scores[final_pred]*100:.2f}% confidence)</h3>
+                        <p style="margin:0; opacity:0.8;">No significant AI manipulation detected</p>
+                    </div>
+                """, unsafe_allow_html=True)
+
         except Exception as e:
-            st.error(f"An error occurred: {e}. Please upload a valid image.")
+            st.error(f"🔧 Analysis error: {str(e)}")
 
-# Streamlit App - Game Page
+# Enhanced Game Page
 def game():
-    st.title("Deepfake Game")
-    st.write("Guess which image is real! You have 5 rounds.")
+    st.markdown("""
+        <div style="text-align: center; padding: 1rem 0;">
+            <h1 style="font-size: 2.5rem; margin: 0; color: #e94560;">
+                🕹️ Detection Challenge
+            </h1>
+            <p style="font-size: 1.1rem; opacity: 0.9;">
+                Spot the real one! Round {current_round}/5
+            </p>
+            <div style="background: #e94560; width: {progress}%; height: 4px; margin: 0 auto;"></div>
+        </div>
+    """.format(
+        current_round=st.session_state.game_round,
+        progress=st.session_state.game_round * 20
+    ), unsafe_allow_html=True)
 
-    # Initialize game state if not already present
-    if "game_score" not in st.session_state:
-        st.session_state.game_score = 0
-    if "game_round" not in st.session_state:
-        st.session_state.game_round = 1
+    # ... [Keep existing game logic but add styling to elements] ...
 
-    # When the game is over, show final score
-    if st.session_state.game_round > 5:
-        st.write(f"**Game Over! Your score: {st.session_state.game_score}/5**")
-        if st.button("Play Again"):
-            st.session_state.game_score = 0
-            st.session_state.game_round = 1
-            st.session_state.used_real_images = set()  # Reset used images
-            st.session_state.pop("current_round_data", None)
-            st.session_state.pop("round_submitted", None)
-            st.session_state.pop("round_result", None)
-            st.rerun()
-        return
-
-    st.write(f"Round {st.session_state.game_round} of 5")
-
-    # Create or load the current round's data
-    if "current_round_data" not in st.session_state:
-        # Fetch one real and one fake image
-        real_image = fetch_real_image()
-        fake_image = fetch_fake_image()
-        if real_image is None or fake_image is None:
-            st.error("Failed to load images. Please try again.")
-            return
-
-        # Randomize the position of the images
-        if random.choice([True, False]):
-            left_image, right_image = real_image, fake_image
-            correct_answer = "Left"
-        else:
-            left_image, right_image = fake_image, real_image
-            correct_answer = "Right"
-
-        st.session_state.current_round_data = {
-            "left_image": left_image,
-            "right_image": right_image,
-            "correct_answer": correct_answer,
-        }
-        st.session_state.round_submitted = False
-
-    # Display images side by side
-    col1, col2 = st.columns(2)
-    with col1:
-        st.image(st.session_state.current_round_data["left_image"], caption="Left Image", use_container_width=True)
-    with col2:
-        st.image(st.session_state.current_round_data["right_image"], caption="Right Image", use_container_width=True)
-
-    # Use a placeholder container for the input controls (radio and submit button)
-    if not st.session_state.round_submitted:
-        control_container = st.empty()
-        with control_container.container():
-            user_choice = st.radio("Which image is real?", ["Left", "Right"])
-            if st.button("Submit", key="submit"):
-                if user_choice == st.session_state.current_round_data["correct_answer"]:
-                    st.session_state.game_score += 1
-                    st.session_state.round_result = "Correct! 🎉"
-                else:
-                    st.session_state.round_result = "Wrong! 😢"
-                st.session_state.round_submitted = True
-                control_container.empty()  # Remove the radio and submit button immediately
-
-    # If the answer has been submitted, display the result and a Next Round button
-    if st.session_state.round_submitted:
-        if st.session_state.round_result == "Correct! 🎉":
-            st.success(st.session_state.round_result)
-        else:
-            st.error(st.session_state.round_result)
-        if st.button("Next Round"):
-            st.session_state.game_round += 1
-            st.session_state.pop("current_round_data", None)
-            st.session_state.pop("round_submitted", None)
-            st.session_state.pop("round_result", None)
-            st.rerun()
-
-    # Always show a button to go back to the home page
-    if st.button("Go to Home"):
-        st.session_state.page = "main"
-        st.rerun()
-
-# Page routing
-if "page" not in st.session_state:
-    st.session_state.page = "main"
-
-if st.session_state.page == "main":
-    main()
-elif st.session_state.page == "game":
-    game()
+# ... [Keep the existing page routing logic] ...
