@@ -11,17 +11,17 @@ import os
 # ----- Helper functions for fetching images for the game -----
 def fetch_real_image():
     """
-    Fetch a random real image from the 'DEEPSHIELD/game_real' directory.
+    Fetch a random real image from the 'game_real' directory.
     Make sure the folder exists and contains image files.
     """
-    real_dir = "DEEPSHIELD/game_real"
+    real_dir = "game_real"
     if not os.path.exists(real_dir):
-        st.error("Error: 'DEEPSHIELD/game_real' directory not found. Please create it and add image files.")
+        st.error("Error: 'game_real' directory not found. Please create it and add image files.")
         return None
         
     real_images = [os.path.join(real_dir, f) for f in os.listdir(real_dir) if f.lower().endswith((".jpg", ".jpeg", ".png"))]
     if not real_images:
-        st.error("Error: No images found in 'DEEPSHIELD/game_real' directory. Please add some image files.")
+        st.error("Error: No images found in 'game_real' directory. Please add some image files.")
         return None
         
     if "used_real_images" not in st.session_state:
@@ -43,17 +43,17 @@ def fetch_real_image():
 
 def fetch_fake_image():
     """
-    Fetch a fake image from the 'DEEPSHIELD/Game_Fake' directory.
+    Fetch a fake image from the 'Game_Fake' directory.
     This function strictly uses images from that directory.
     """
-    fake_dir = "DEEPSHIELD/Game_Fake"
+    fake_dir = "Game_Fake"
     if not os.path.exists(fake_dir):
-        st.error("Error: 'DEEPSHIELD/Game_Fake' directory not found. Please create it and add fake images.")
+        st.error("Error: 'Game_Fake' directory not found. Please create it and add fake images.")
         return None
 
     fake_images = [os.path.join(fake_dir, f) for f in os.listdir(fake_dir) if f.lower().endswith((".jpg", ".jpeg", ".png"))]
     if not fake_images:
-        st.error("Error: No images found in 'DEEPSHIELD/Game_Fake' directory. Please add some fake images.")
+        st.error("Error: No images found in 'Game_Fake' directory. Please add some fake images.")
         return None
 
     selected_image = random.choice(fake_images)
@@ -266,7 +266,7 @@ def game():
         fake_image = fetch_fake_image()
         
         if real_image is None or fake_image is None:
-            st.error("Could not load game images. Please check that your 'DEEPSHIELD/game_real' and 'DEEPSHIELD/Game_Fake' directories contain valid images.")
+            st.error("Could not load game images. Please check that your 'game_real' and 'Game_Fake' directories contain valid images.")
             if st.button("Return to Main Page"):
                 st.session_state.page = "main"
                 rerun()
