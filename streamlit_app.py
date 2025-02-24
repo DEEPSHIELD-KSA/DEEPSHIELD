@@ -12,38 +12,29 @@ import os
 def fetch_real_image():
     """
     Fetch a random real image from the 'game_real' directory.
-    Make sure the folder 'game_real' exists and contains JPG images.
+    Make sure the folder 'game_real' exists and contains image files.
     """
-    # Check if directory exists
     if not os.path.exists("game_real"):
-        st.error("Error: 'game_real' directory not found. Please create it and add JPG images.")
+        st.error("Error: 'game_real' directory not found. Please create it and add image files.")
         return None
-        
+
     real_images = [os.path.join("game_real", f) for f in os.listdir("game_real") if f.lower().endswith((".jpg", ".jpeg", ".png"))]
-    
-    # Check if there are any images in the directory
     if not real_images:
-        st.error("Error: No images found in 'game_real' directory. Please add some JPG images.")
+        st.error("Error: No images found in 'game_real' directory. Please add some image files.")
         return None
-        
-    # Track used images to avoid repetition
+
     if "used_real_images" not in st.session_state:
         st.session_state.used_real_images = set()
-        
-    # Filter out already used images
+
     available_images = [img for img in real_images if img not in st.session_state.used_real_images]
-    
-    # If all images have been used, reset the tracking
     if not available_images:
         st.session_state.used_real_images = set()
         available_images = real_images
-    
-    # Select a random image
+
     selected_image = random.choice(available_images)
     st.session_state.used_real_images.add(selected_image)
-    
+
     try:
-        # Use .copy() so that the image is fully loaded into memory
         return Image.open(selected_image).copy()
     except Exception as e:
         st.error(f"Error loading image {selected_image}: {str(e)}")
@@ -51,31 +42,24 @@ def fetch_real_image():
 
 def fetch_fake_image():
     """
-    Fetch a fake image.
-    This function now first looks in the 'game_fake' directory for images.
-    If available, a random fake image from there will be returned.
-    Otherwise, it falls back to the sample fake image in the 'samples' directory.
+    Fetch a fake image from the 'game_fake' directory.
+    This function always looks in 'game_fake' for fake images.
+    If the directory is missing or contains no images, an error is shown.
     """
-    # Try dedicated fake images folder first
-    if os.path.exists("game_fake"):
-        fake_images = [os.path.join("game_fake", f) for f in os.listdir("game_fake") if f.lower().endswith((".jpg", ".jpeg", ".png"))]
-        if fake_images:
-            selected_image = random.choice(fake_images)
-            try:
-                return Image.open(selected_image).copy()
-            except Exception as e:
-                st.error(f"Error loading fake image: {str(e)}")
-    
-    # Fall back to sample fake image
-    fake_image_path = "samples/fake_sample.jpg"
-    if os.path.exists(fake_image_path):
-        try:
-            return Image.open(fake_image_path).copy()
-        except Exception as e:
-            st.error(f"Error loading sample fake image: {str(e)}")
-            return None
-    else:
-        st.error("Error: Fake image sample not found at 'samples/fake_sample.jpg'")
+    if not os.path.exists("game_fake"):
+        st.error("Error: 'game_fake' directory not found. Please create it and add fake images.")
+        return None
+
+    fake_images = [os.path.join("game_fake", f) for f in os.listdir("game_fake") if f.lower().endswith((".jpg", ".jpeg", ".png"))]
+    if not fake_images:
+        st.error("Error: No images found in 'game_fake' directory. Please add some fake images.")
+        return None
+
+    selected_image = random.choice(fake_images)
+    try:
+        return Image.open(selected_image).copy()
+    except Exception as e:
+        st.error(f"Error loading fake image {selected_image}: {str(e)}")
         return None
 # ----- End of helper functions for fetching images -----
 
@@ -125,7 +109,6 @@ def predict_image(image_hash: str, _image: Image.Image):
 # Main Page: Image Analysis
 # =======================
 def main():
-    # Display logo using st.image() for reliability
     try:
         logo_image = Image.open("logo.png")
         st.image(logo_image, width=300)
@@ -142,7 +125,6 @@ def main():
         </div>
         """, unsafe_allow_html=True)
         if st.button("🎮 Start Detection Game", use_container_width=True):
-            # Reset game state when starting a new game
             st.session_state.game_score = 0
             st.session_state.game_round = 1
             if "used_real_images" in st.session_state:
@@ -238,7 +220,6 @@ def game():
     st.title("Deepfake Game")
     st.write("Guess which image is real! You have 5 rounds.")
 
-    # Initialize game state
     if "game_score" not in st.session_state:
         st.session_state.game_score = 0
     if "game_round" not in st.session_state:
@@ -246,7 +227,6 @@ def game():
     if "used_real_images" not in st.session_state:
         st.session_state.used_real_images = set()
 
-    # Game over state
     if st.session_state.game_round > 5:
         st.markdown(f"""
         <div style="background: rgba(0,188,212,0.2); padding: 2rem; border-radius: 15px; text-align: center;">
@@ -273,7 +253,6 @@ def game():
             rerun()
         return
 
-    # Display current round
     st.markdown(f"""
     <div style="background: rgba(0,188,212,0.1); padding: 1rem; border-radius: 15px; text-align: center; margin-bottom: 1.5rem;">
         <h3 style="margin:0;">Round {st.session_state.game_round} of 5</h3>
@@ -281,19 +260,17 @@ def game():
     </div>
     """, unsafe_allow_html=True)
 
-    # Generate new round data if needed
     if "current_round_data" not in st.session_state or not st.session_state.current_round_data:
         real_image = fetch_real_image()
         fake_image = fetch_fake_image()
         
         if real_image is None or fake_image is None:
-            st.error("Could not load game images. Please check that your 'game_real' and 'samples' directories contain valid images.")
+            st.error("Could not load game images. Please check that your 'game_real' and 'game_fake' directories contain valid images.")
             if st.button("Return to Main Page"):
                 st.session_state.page = "main"
                 rerun()
             return
 
-        # Randomly decide which side gets the real image
         if random.choice([True, False]):
             left_image, right_image = real_image, fake_image
             correct_answer = "Left"
@@ -309,25 +286,15 @@ def game():
         st.session_state.round_submitted = False
         st.session_state.round_result = None
 
-    # Display images side by side with fixed size
     fixed_size = (300, 300)
     left_fixed = st.session_state.current_round_data["left_image"].resize(fixed_size)
     right_fixed = st.session_state.current_round_data["right_image"].resize(fixed_size)
     col1, col2 = st.columns(2)
     with col1:
-        st.image(
-            left_fixed,
-            caption="Left Image",
-            use_container_width=False
-        )
+        st.image(left_fixed, caption="Left Image", use_container_width=False)
     with col2:
-        st.image(
-            right_fixed,
-            caption="Right Image",
-            use_container_width=False
-        )
+        st.image(right_fixed, caption="Right Image", use_container_width=False)
 
-    # User selection and submission
     if "round_submitted" not in st.session_state or not st.session_state.round_submitted:
         st.markdown("### Which image do you think is real?")
         user_choice = st.radio("Select one:", ["Left", "Right"], horizontal=True, label_visibility="collapsed")
@@ -344,7 +311,6 @@ def game():
                 st.session_state.round_submitted = True
                 rerun()
 
-    # Display result after submission
     if "round_submitted" in st.session_state and st.session_state.round_submitted:
         if st.session_state.round_result == "Correct! 🎉":
             st.success(f"{st.session_state.round_result} The {st.session_state.current_round_data['correct_answer']} image is real.")
@@ -361,7 +327,6 @@ def game():
                 st.session_state.pop("round_result")
             rerun()
 
-    # Return to main page button
     st.markdown("---")
     if st.button("Exit Game", use_container_width=True):
         st.session_state.page = "main"
@@ -371,11 +336,9 @@ def game():
 # Page Routing
 # =======================
 if __name__ == "__main__":
-    # Initialize the page state if not present
     if "page" not in st.session_state:
         st.session_state.page = "main"
         
-    # Route to the correct page
     if st.session_state.page == "game":
         game()
     else:
