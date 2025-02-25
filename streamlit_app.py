@@ -64,6 +64,7 @@ def fetch_fake_image():
     except Exception as e:
         st.error(f"Error loading fake image {selected_image}: {str(e)}")
         return None
+
 # ----- End of helper functions for fetching images -----
 
 # Helper function for page reruns
@@ -160,13 +161,21 @@ def welcome():
         col1, col2, col3 = st.columns(3)
         with col3:
             st.markdown("""
-            <div class="welcome-section">
-                <h1> 🕵️ Made by </h1>
-                <ol>
-                    <li><strong>Musab Alosaimi</strong></li>
-                    <li><strong>Bassam Alanazi</strong></li>
-                    <li><strong>Abdulazlz AlHwitan</strong></li>
-                </ol>
+            <div style="
+                 background: rgba(0,188,212,0.15);
+                 border: 2px solid #00bcd4;
+                 padding: 20px;
+                 border-radius: 10px;
+                 margin: 10px;
+                 text-align: center;
+                 box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+                 ">
+                <h2 style="color: #00bcd4; margin-bottom: 10px;">🕵️ Made by</h2>
+                <ul style="list-style-type: none; padding: 0; margin: 0;">
+                    <li style="font-weight: bold; color: #ffffff;">Musab Alosaimi</li>
+                    <li style="font-weight: bold; color: #ffffff;">Bassam Alanazi</li>
+                    <li style="font-weight: bold; color: #ffffff;">Abdulazlz AlHwitan</li>
+                </ul>
             </div>
             """, unsafe_allow_html=True)
 
