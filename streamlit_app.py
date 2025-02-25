@@ -116,7 +116,7 @@ def predict_image(image_hash: str, _image: Image.Image):
 def welcome():
     try:
         logo_image = Image.open("logo.png")
-        st.image(logo_image, width=800)
+        st.image(logo_image, width=700)
     except Exception as e:
         st.write("")
 
@@ -160,24 +160,24 @@ def welcome():
     with st.container():
         col1, col2, col3 = st.columns(3)
         with col3:
-            st.markdown("""
-            <div style="
+
+   st.markdown("""
+    <div style="
                  background: rgba(0,188,212,0.15);
                  border: 2px solid #00bcd4;
                  padding: 20px;
                  border-radius: 0px;
-                 margin: 10px;
+                 margin: 10px auto;
                  text-align: center;
+                 width: 100%;
+                 max-width: 500px;
                  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
                  ">
-                <h2 style="color: #00bcd4; margin-bottom: 10px;">🕵️ Made by</h2>
-                <ul style="list-style-type: none; padding: 0; margin: 0;">
-                    <li style="font-weight: bold; color: #ffffff;">Musab Alosaimi</li>
-                    <li style="font-weight: bold; color: #ffffff;">Bassam Alanazi</li>
-                    <li style="font-weight: bold; color: #ffffff;">Abdulazlz AlHwitan</li>
-                </ul>
-            </div>
-            """, unsafe_allow_html=True)
+        <h3 style="font-weight: bold; color: #ffffff; margin: 0;">
+            🕵️ Made by: Musab Alosaimi - Bassam Alanazi - Abdulazlz AlHwitan
+        </h3>
+    </div>
+""", unsafe_allow_html=True)
 
     if st.button("Get Started →", use_container_width=True):
         st.session_state.page = "main"
