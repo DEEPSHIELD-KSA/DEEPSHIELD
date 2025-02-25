@@ -104,7 +104,7 @@ def get_image_hash(image: Image.Image) -> str:
     image.save(buf, format="PNG")
     return hashlib.sha256(buf.getvalue()).hexdigest()
 
-# Cache predictions based on the image hash.
+# Cache predictions based on the image hash
 @st.cache_data(show_spinner=False)
 def predict_image(image_hash: str, _image: Image.Image):
     model = load_model()
@@ -120,13 +120,13 @@ def welcome():
     except Exception as e:
         st.write("")
 
-    st.title("    DeepShield    ")
+    st.title("DeepShield")
 
     st.markdown("""
     <div class="welcome-section">
         <h3>Welcome to the Deepfake Detection final project</h3>
-        <p>This application helps you detect AI-generated images using state-of-the-art machine learning models. 
-        Explore the capabilities of deepfake detection through image analysis or test your skill in the detection challenge game!</p>
+        <p>This application helps you detect AI-generated images using state-of-the-art machine learning models.
+           Explore the capabilities of deepfake detection through image analysis or test your skill in the detection challenge game!</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -160,22 +160,18 @@ def welcome():
     with st.container():
         col1, col2, col3 = st.columns(3)
         with col3:
+            # Simplified "Made by Musab" section
             st.markdown("""
             <div style="
-                 background: rgba(0,188,212,0.15);
-                 border: 2px solid #00bcd4;
-                 padding: 20px;
-                 border-radius: 0px;
+                 background: #00bcd4;
+                 padding: 10px;
+                 border-radius: 10px;
                  margin: 10px;
                  text-align: center;
-                 box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+                 color: #fff;
+                 font-size: 18px;
                  ">
-                <h2 style="color: #00bcd4; margin-bottom: 10px;">🕵️ Made by</h2>
-                <ul style="list-style-type: none; padding: 0; margin: 0;">
-                    <li style="font-weight: bold; color: #ffffff;">Musab Alosaimi</li>
-                    <li style="font-weight: bold; color: #ffffff;">Bassam Alanazi</li>
-                    <li style="font-weight: bold; color: #ffffff;">Abdulazlz AlHwitan</li>
-                </ul>
+                <h2 style="margin-bottom: 10px;">Made by Musab</h2>
             </div>
             """, unsafe_allow_html=True)
 
@@ -220,12 +216,16 @@ def main():
     with col1:
         st.markdown("### 📤 Image Analysis Zone")
         uploaded_file = st.file_uploader("", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
-        sample_option = st.selectbox("Or choose from samples:", ["Select", "Real Sample", "Fake Sample"],
-                                     help="Explore pre-loaded examples to test the system")
+        sample_option = st.selectbox(
+            "Or choose from samples:",
+            ["Select", "Real Sample", "Fake Sample"],
+            help="Explore pre-loaded examples to test the system"
+        )
     with col2:
         if uploaded_file or sample_option != "Select":
             st.markdown("### 🔍 Preview")
             try:
+                image = None
                 if uploaded_file:
                     image = Image.open(uploaded_file)
                 elif sample_option == "Real Sample":
@@ -233,13 +233,11 @@ def main():
                         image = Image.open("samples/real_sample.jpg")
                     else:
                         st.error("Real sample image not found. Please check 'samples/real_sample.jpg'")
-                        image = None
-                else:
+                elif sample_option == "Fake Sample":
                     if os.path.exists("samples/fake_sample.jpg"):
                         image = Image.open("samples/fake_sample.jpg")
                     else:
                         st.error("Fake sample image not found. Please check 'samples/fake_sample.jpg'")
-                        image = None
 
                 if image:
                     st.image(image, use_container_width=True, caption="Selected Image Preview")
@@ -257,20 +255,33 @@ def main():
 
             col_chart_left, col_chart_right = st.columns(2)
             with col_chart_left:
-                real_chart_data = pd.DataFrame({"Category": ["Real"], "Confidence": [scores.get("real", 0)]})
-                real_chart = alt.Chart(real_chart_data).mark_bar(size=40, color="#00ff88").encode(
-                    x=alt.X("Category", title=""),
-                    y=alt.Y("Confidence", title="Confidence", scale=alt.Scale(domain=[0, 1])),
-                    tooltip=["Category", "Confidence"]
-                ).properties(height=200)
+                real_conf = scores.get("real", 0)
+                real_chart_data = pd.DataFrame({"Category": ["Real"], "Confidence": [real_conf]})
+                real_chart = (
+                    alt.Chart(real_chart_data)
+                    .mark_bar(size=40, color="#00ff88")
+                    .encode(
+                        x=alt.X("Category", title=""),
+                        y=alt.Y("Confidence", title="Confidence", scale=alt.Scale(domain=[0, 1])),
+                        tooltip=["Category", "Confidence"]
+                    )
+                    .properties(height=200)
+                )
                 st.altair_chart(real_chart, use_container_width=True)
+
             with col_chart_right:
-                fake_chart_data = pd.DataFrame({"Category": ["Fake"], "Confidence": [scores.get("fake", 0)]})
-                fake_chart = alt.Chart(fake_chart_data).mark_bar(size=40, color="#ff4d4d").encode(
-                    x=alt.X("Category", title=""),
-                    y=alt.Y("Confidence", title="Confidence", scale=alt.Scale(domain=[0, 1])),
-                    tooltip=["Category", "Confidence"]
-                ).properties(height=200)
+                fake_conf = scores.get("fake", 0)
+                fake_chart_data = pd.DataFrame({"Category": ["Fake"], "Confidence": [fake_conf]})
+                fake_chart = (
+                    alt.Chart(fake_chart_data)
+                    .mark_bar(size=40, color="#ff4d4d")
+                    .encode(
+                        x=alt.X("Category", title=""),
+                        y=alt.Y("Confidence", title="Confidence", scale=alt.Scale(domain=[0, 1])),
+                        tooltip=["Category", "Confidence"]
+                    )
+                    .properties(height=200)
+                )
                 st.altair_chart(fake_chart, use_container_width=True)
 
             final_pred = max(scores, key=scores.get)
