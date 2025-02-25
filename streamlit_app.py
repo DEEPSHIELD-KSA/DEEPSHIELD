@@ -153,7 +153,17 @@ def welcome():
             </ol>
         </div>
         """, unsafe_allow_html=True)
-
+ with col3:
+        st.markdown("""
+        <div class="welcome-section">
+            <h1> 🕵️ Made by  </h1>
+            <ol>
+                <strong> Musab Alosaimi </strong>
+               <strong> Bassam Alanazi </strong>
+               <strong> abdulazlz Al-Hwitan</strong> 
+            </ol>
+        </div>
+        """, unsafe_allow_html=True)
     if st.button("Get Started →", use_container_width=True, type="primary"):
         st.session_state.page = "main"
         rerun()
