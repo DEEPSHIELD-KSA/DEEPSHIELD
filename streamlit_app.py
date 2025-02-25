@@ -127,6 +127,7 @@ def welcome():
         <h3>Welcome to the Deepfake Detection final project</h3>
         <p>This application helps you detect AI-generated images using state-of-the-art machine learning models.
            Explore the capabilities of deepfake detection through image analysis or test your skill in the detection challenge game!</p>
+           <h3>>🕵️ Mady By - > Musab Alosaimi - Bassam Alanazi - Abdulazlz AlHwitan </h3>
     </div>
     """, unsafe_allow_html=True)
 
@@ -140,6 +141,7 @@ def welcome():
                 <li><strong>Detection Game</strong>: Train your eye to spot deepfakes in a fun, interactive game</li>
                 <li><strong>Real-time Predictions</strong>: Get instant results with confidence scores</li>
                 <li><strong>Educational Insights</strong>: Learn about deepfake technology and detection methods</li>
+               
             </ul>
         </div>
         """, unsafe_allow_html=True)
@@ -156,24 +158,6 @@ def welcome():
             </ol>
         </div>
         """, unsafe_allow_html=True)
-
-    with st.container():
-        col1, col2, col3 = st.columns(3)
-        with col3:
-            # Simplified "Made by Musab" section
-            st.markdown("""
-            <div style="
-                 background: #00bcd4;
-                 padding: 10px;
-                 border-radius: 10px;
-                 margin: 10px;
-                 text-align: center;
-                 color: #fff;
-                 font-size: 18px;
-                 ">
-                <h2 style="margin-bottom: 10px;">Made by Musab</h2>
-            </div>
-            """, unsafe_allow_html=True)
 
     if st.button("Get Started →", use_container_width=True):
         st.session_state.page = "main"
