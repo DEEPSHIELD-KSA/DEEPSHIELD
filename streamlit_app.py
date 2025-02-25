@@ -18,15 +18,16 @@ def fetch_real_image():
     if not os.path.exists(real_dir):
         st.error("Error: 'game_real' directory not found. Please create it and add image files.")
         return None
-        
-    real_images = [os.path.join(real_dir, f) for f in os.listdir(real_dir) if f.lower().endswith((".jpg", ".jpeg", ".png"))]
+
+    real_images = [os.path.join(real_dir, f) for f in os.listdir(real_dir)
+                   if f.lower().endswith((".jpg", ".jpeg", ".png"))]
     if not real_images:
         st.error("Error: No images found in 'game_real' directory. Please add some image files.")
         return None
-        
+
     if "used_real_images" not in st.session_state:
         st.session_state.used_real_images = set()
-        
+
     available_images = [img for img in real_images if img not in st.session_state.used_real_images]
     if not available_images:
         st.session_state.used_real_images = set()
@@ -51,7 +52,8 @@ def fetch_fake_image():
         st.error("Error: 'Game_Fake' directory not found. Please create it and add fake images.")
         return None
 
-    fake_images = [os.path.join(fake_dir, f) for f in os.listdir(fake_dir) if f.lower().endswith((".jpg", ".jpeg", ".png"))]
+    fake_images = [os.path.join(fake_dir, f) for f in os.listdir(fake_dir)
+                   if f.lower().endswith((".jpg", ".jpeg", ".png"))]
     if not fake_images:
         st.error("Error: No images found in 'Game_Fake' directory. Please add some fake images.")
         return None
@@ -140,7 +142,7 @@ def welcome():
             </ul>
         </div>
         """, unsafe_allow_html=True)
-    
+
     with col2:
         st.markdown("""
         <div class="welcome-section">
@@ -153,18 +155,22 @@ def welcome():
             </ol>
         </div>
         """, unsafe_allow_html=True)
-with col3:
-    st.markdown("""
-    <div class="welcome-section">
-        <h1> 🕵️ Made by </h1>
-        <ol>
-            <li><strong>Musab Alosaimi</strong></li>
-            <li><strong>Bassam Alanazi</strong></li>
-            <li><strong>Abdulazlz AlHwitan</strong></li>
-        </ol>
-    </div>
-    """, unsafe_allow_html=True)
-    if st.button("Get Started →", use_container_width=True, type="primary"):
+
+    with st.container():
+        col1, col2, col3 = st.columns(3)
+        with col3:
+            st.markdown("""
+            <div class="welcome-section">
+                <h1> 🕵️ Made by </h1>
+                <ol>
+                    <li><strong>Musab Alosaimi</strong></li>
+                    <li><strong>Bassam Alanazi</strong></li>
+                    <li><strong>Abdulazlz AlHwitan</strong></li>
+                </ol>
+            </div>
+            """, unsafe_allow_html=True)
+
+    if st.button("Get Started →", use_container_width=True):
         st.session_state.page = "main"
         rerun()
 
@@ -179,7 +185,7 @@ def main():
         st.write("")
 
     st.title("Deepfake Detection System")
-    
+
     with st.sidebar:
         st.markdown("""
         <div style="border-left: 3px solid #00bcd4; padding-left: 1rem; margin: 1rem 0;">
@@ -195,15 +201,12 @@ def main():
             st.session_state.game_round = 1
             if "used_real_images" in st.session_state:
                 st.session_state.used_real_images = set()
-            if "current_round_data" in st.session_state:
-                st.session_state.pop("current_round_data")
-            if "round_submitted" in st.session_state:
-                st.session_state.pop("round_submitted")
-            if "round_result" in st.session_state:
-                st.session_state.pop("round_result")
+            for key in ["current_round_data", "round_submitted", "round_result"]:
+                if key in st.session_state:
+                    st.session_state.pop(key)
             st.session_state.page = "game"
             rerun()
-    
+
     col1, col2 = st.columns([4, 3])
     with col1:
         st.markdown("### 📤 Image Analysis Zone")
@@ -228,12 +231,12 @@ def main():
                     else:
                         st.error("Fake sample image not found. Please check 'samples/fake_sample.jpg'")
                         image = None
-                        
+
                 if image:
                     st.image(image, use_container_width=True, caption="Selected Image Preview")
             except Exception as e:
                 st.error(f"Error loading image: {str(e)}")
-    
+
     if (uploaded_file or sample_option != "Select") and 'image' in locals() and image is not None:
         try:
             with st.spinner("🔬 Scanning image for AI fingerprints..."):
@@ -242,7 +245,7 @@ def main():
                 scores = {r["label"].lower(): r["score"] for r in result}
             st.markdown("---")
             st.markdown("### 📊 Detection Report")
-            
+
             col_chart_left, col_chart_right = st.columns(2)
             with col_chart_left:
                 real_chart_data = pd.DataFrame({"Category": ["Real"], "Confidence": [scores.get("real", 0)]})
@@ -260,7 +263,7 @@ def main():
                     tooltip=["Category", "Confidence"]
                 ).properties(height=200)
                 st.altair_chart(fake_chart, use_container_width=True)
-            
+
             final_pred = max(scores, key=scores.get)
             if final_pred == "fake":
                 st.markdown(f"""
@@ -301,19 +304,16 @@ def game():
             <p>Can you do better next time?</p>
         </div>
         """, unsafe_allow_html=True)
-        
+
         if st.button("Play Again"):
             st.session_state.game_score = 0
             st.session_state.game_round = 1
             st.session_state.used_real_images = set()
-            if "current_round_data" in st.session_state:
-                st.session_state.pop("current_round_data")
-            if "round_submitted" in st.session_state:
-                st.session_state.pop("round_submitted")
-            if "round_result" in st.session_state:
-                st.session_state.pop("round_result")
+            for key in ["current_round_data", "round_submitted", "round_result"]:
+                if key in st.session_state:
+                    st.session_state.pop(key)
             rerun()
-        
+
         if st.button("Return to Home"):
             st.session_state.page = "main"
             rerun()
@@ -329,7 +329,7 @@ def game():
     if "current_round_data" not in st.session_state or not st.session_state.current_round_data:
         real_image = fetch_real_image()
         fake_image = fetch_fake_image()
-        
+
         if real_image is None or fake_image is None:
             st.error("Could not load game images. Please check that your 'game_real' and 'Game_Fake' directories contain valid images.")
             if st.button("Return to Main Page"):
@@ -364,7 +364,7 @@ def game():
     if "round_submitted" not in st.session_state or not st.session_state.round_submitted:
         st.markdown("### Which image do you think is real?")
         user_choice = st.radio("Select one:", ["Left", "Right"], horizontal=True, label_visibility="collapsed")
-        
+
         col_button1, col_button2 = st.columns([1, 1])
         with col_button1:
             if st.button("Submit Answer", use_container_width=True):
@@ -377,20 +377,17 @@ def game():
                 st.session_state.round_submitted = True
                 rerun()
 
-    if "round_submitted" in st.session_state and st.session_state.round_submitted:
+    if st.session_state.get("round_submitted", False):
         if st.session_state.round_result == "Correct! 🎉":
             st.success(f"{st.session_state.round_result} The {st.session_state.current_round_data['correct_answer']} image is real.")
         else:
             st.error(f"{st.session_state.round_result} The {st.session_state.current_round_data['correct_answer']} image is real.")
-        
+
         if st.button("Next Round", use_container_width=True):
             st.session_state.game_round += 1
-            if "current_round_data" in st.session_state:
-                st.session_state.pop("current_round_data")
-            if "round_submitted" in st.session_state:
-                st.session_state.pop("round_submitted")
-            if "round_result" in st.session_state:
-                st.session_state.pop("round_result")
+            for key in ["current_round_data", "round_submitted", "round_result"]:
+                if key in st.session_state:
+                    st.session_state.pop(key)
             rerun()
 
     st.markdown("---")
@@ -404,7 +401,7 @@ def game():
 if __name__ == "__main__":
     if "page" not in st.session_state:
         st.session_state.page = "welcome"
-    
+
     if st.session_state.page == "welcome":
         welcome()
     elif st.session_state.page == "game":
