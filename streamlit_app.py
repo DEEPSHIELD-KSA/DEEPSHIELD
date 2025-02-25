@@ -128,9 +128,9 @@ def welcome():
         <p>This application helps you detect AI-generated images using state-of-the-art machine learning models.
            Explore the capabilities of deepfake detection through image analysis or test your skill in the detection challenge game!</p>
            <h3>🕵️ Mady By </h3>
-           <p>Musab Alosaimi 
-           Bassam Alanazi 
-           Abdulazlz AlHwitan</p>
+            <li><strong>Musab Alosaimi</li>
+            <li><strong>Bassam Alanazi</li>
+            <li><strong>Abdulazlz AlHwitan</li>
     </div>
     """, unsafe_allow_html=True)
 
