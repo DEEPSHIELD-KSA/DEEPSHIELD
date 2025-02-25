@@ -127,7 +127,10 @@ def welcome():
         <h3>Welcome to the Deepfake Detection final project</h3>
         <p>This application helps you detect AI-generated images using state-of-the-art machine learning models.
            Explore the capabilities of deepfake detection through image analysis or test your skill in the detection challenge game!</p>
-           <h3>>🕵️ Mady By - > Musab Alosaimi - Bassam Alanazi - Abdulazlz AlHwitan </h3>
+           <h3>🕵️ Mady By </h3>
+           <p>Musab Alosaimi 
+           Bassam Alanazi 
+           Abdulazlz AlHwitan</p>
     </div>
     """, unsafe_allow_html=True)
 
