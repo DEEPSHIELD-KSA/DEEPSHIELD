@@ -1,5 +1,5 @@
 import streamlit as st
-from PIL import Image, ImageDraw
+from PIL import Image, ImageFilter, ImageDraw, ImageEnhance, ImageFont
 import pandas as pd
 import altair as alt
 import io
@@ -10,130 +10,89 @@ from huggingface_hub import hf_hub_download
 import keras
 import numpy as np
 
-# ----- Face Detection Model without cv2 -----
-@st.cache_resource
-def load_face_detector():
-    """Load a face detection model from Hugging Face"""
-    # Use mobilenet based model for face detection
-    model_path = hf_hub_download(repo_id="musabalosimi/face_detector", filename="face_detection_model.keras")
-    face_model = keras.models.load_model(model_path)
-    return face_model
+# =======================
+# IMAGE PROCESSING FUNCTIONS (without cv2)
+# =======================
+def apply_image_processing(image: Image.Image, operation: str) -> Image.Image:
+    """Apply various image processing operations without using cv2"""
+    try:
+        if operation == "grayscale":
+            return image.convert('L')
+        elif operation == "blur":
+            return image.filter(ImageFilter.GaussianBlur(radius=2))
+        elif operation == "edges":
+            return image.filter(ImageFilter.FIND_EDGES)
+        elif operation == "contrast":
+            enhancer = ImageEnhance.Contrast(image)
+            return enhancer.enhance(1.5)
+        elif operation == "brightness":
+            enhancer = ImageEnhance.Brightness(image)
+            return enhancer.enhance(1.2)
+        elif operation == "sharpen":
+            return image.filter(ImageFilter.SHARPEN)
+        elif operation == "emboss":
+            return image.filter(ImageFilter.EMBOSS)
+        elif operation == "sketch":
+            return image.filter(ImageFilter.CONTOUR)
+        else:
+            return image
+    except Exception as e:
+        st.error(f"Image processing error: {str(e)}")
+        return image
 
-def detect_face(image):
-    """
-    Detect if there's a human face in the image without using cv2
-    Returns: (has_face, face_count, processed_image)
-    """
-    face_model = load_face_detector()
-    
-    # Prepare the image for the model
-    img = image.convert('RGB').resize((224, 224))
-    img_array = np.array(img) / 255.0
-    img_array = np.expand_dims(img_array, axis=0)
-    
-    # Get prediction - output should be bounding boxes [x, y, width, height, confidence]
-    # This is a simplified example - adjust based on your actual model's output format
-    predictions = face_model.predict(img_array)
-    
-    # Threshold for face detection confidence
-    confidence_threshold = 0.7
-    
-    # Process predictions to get face bounding boxes
-    # This is a placeholder - adjust based on your model's output format
-    face_boxes = []
-    for pred in predictions[0]:
-        confidence = pred[4]
-        if confidence > confidence_threshold:
-            # Scale coordinates to original image size
-            scale_x = image.width / 224
-            scale_y = image.height / 224
-            x = int(pred[0] * scale_x)
-            y = int(pred[1] * scale_y)
-            width = int(pred[2] * scale_x)
-            height = int(pred[3] * scale_y)
-            face_boxes.append((x, y, width, height, confidence))
-    
-    # Create a copy of the image to draw on
-    draw_image = image.copy()
-    draw = ImageDraw.Draw(draw_image)
-    
-    # Draw rectangles around detected faces
-    for x, y, width, height, _ in face_boxes:
-        draw.rectangle([(x, y), (x + width, y + height)], outline="green", width=3)
-    
-    return len(face_boxes) > 0, len(face_boxes), draw_image
+def show_image_processing_options(original_image):
+    """Display image processing options in a Streamlit expander"""
+    with st.expander("🛠️ Image Processing Tools (Experimental)"):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.write("Original Image")
+            st.image(original_image, use_container_width=True)
+            
+        with col2:
+            processing_option = st.selectbox(
+                "Select processing:",
+                ["None", "Grayscale", "Blur", "Edge Detection", 
+                 "Enhance Contrast", "Brightness", "Sharpen", 
+                 "Emboss", "Sketch Effect"],
+                index=0
+            )
+            
+            operation_map = {
+                "None": "none",
+                "Grayscale": "grayscale",
+                "Blur": "blur",
+                "Edge Detection": "edges",
+                "Enhance Contrast": "contrast",
+                "Brightness": "brightness",
+                "Sharpen": "sharpen",
+                "Emboss": "emboss",
+                "Sketch Effect": "sketch"
+            }
+            
+            if processing_option != "None":
+                processed_img = apply_image_processing(
+                    original_image.copy(),
+                    operation_map[processing_option]
+                )
+                st.write("Processed Image")
+                st.image(processed_img, use_container_width=True)
+                
+                # Add download button for processed image
+                buf = io.BytesIO()
+                processed_img.save(buf, format="PNG")
+                st.download_button(
+                    label="Download Processed Image",
+                    data=buf.getvalue(),
+                    file_name=f"processed_{processing_option.lower().replace(' ', '_')}.png",
+                    mime="image/png"
+                )
 
-# ----- Alternative Face Detection using Image Classification -----
-@st.cache_resource
-def load_face_classifier():
-    """
-    Load a simpler face classifier model that just predicts if an image contains a face
-    This is a more lightweight alternative that doesn't require OpenCV
-    """
-    model_path = hf_hub_download(repo_id="musabalosimi/face_classifier", filename="face_classifier.keras")
-    classifier = keras.models.load_model(model_path)
-    return classifier
-
-def simple_face_detection(image):
-    """
-    A simpler approach that just classifies if an image contains a face
-    Returns: (has_face, confidence, image)
-    """
-    classifier = load_face_classifier()
-    
-    # Resize and prepare image
-    img = image.convert('RGB').resize((224, 224))
-    img_array = np.array(img) / 255.0
-    img_array = np.expand_dims(img_array, axis=0)
-    
-    # Predict if image contains a face (binary classification)
-    prediction = classifier.predict(img_array)
-    face_probability = prediction[0][0]
-    
-    # Determine if a face is present based on probability
-    has_face = face_probability > 0.5
-    
-    return has_face, face_probability, image
-
-# ----- Deepfake Detection Model -----
-@st.cache_resource
-def load_model():
-    model_path = hf_hub_download(repo_id="musabalosimi/deepfake1", filename="my_model1.keras")
-    model = keras.models.load_model(model_path)
-    return model
-
-# Helper function to generate a hash for a PIL image
-def get_image_hash(image: Image.Image) -> str:
-    buf = io.BytesIO()
-    image.save(buf, format="PNG")
-    return hashlib.sha256(buf.getvalue()).hexdigest()
-
-# Cache predictions based on the image hash
-@st.cache_data(show_spinner=False)
-def predict_image(image_hash: str, _image: Image.Image):
-    model = load_model()
-    
-    # Preprocess the image
-    img = _image.convert('RGB').resize((299, 299))  # Adjust size to match your model's expected input
-    img_array = np.array(img) / 255.0
-    img_array = np.expand_dims(img_array, axis=0)  # Add batch dimension
-    
-    # Get prediction
-    prediction = model.predict(img_array)
-    prob = prediction[0][0]
-    
-    # Format results to match expected format (real/fake with scores)
-    if prob > 0.5:
-        return [{"label": "real", "score": float(prob)}, {"label": "fake", "score": float(1 - prob)}]
-    else:
-        return [{"label": "fake", "score": float(1 - prob)}, {"label": "real", "score": float(prob)}]
-
-# ----- Helper functions for fetching images for the game -----
+# =======================
+# EXISTING HELPER FUNCTIONS (unchanged)
+# =======================
 def fetch_real_image():
-    """
-    Fetch a random real image from the 'game_real' directory.
-    Make sure the folder exists and contains image files.
-    """
+    """Fetch a random real image from the 'game_real' directory."""
     real_dir = "game_real"
     if not os.path.exists(real_dir):
         st.error("Error: 'game_real' directory not found. Please create it and add image files.")
@@ -163,10 +122,7 @@ def fetch_real_image():
         return None
 
 def fetch_fake_image():
-    """
-    Fetch a fake image from the 'Game_Fake' directory.
-    This function strictly uses images from that directory.
-    """
+    """Fetch a fake image from the 'Game_Fake' directory."""
     fake_dir = "Game_Fake"
     if not os.path.exists(fake_dir):
         st.error("Error: 'Game_Fake' directory not found. Please create it and add fake images.")
@@ -185,37 +141,43 @@ def fetch_fake_image():
         st.error(f"Error loading fake image {selected_image}: {str(e)}")
         return None
 
-# Helper function for page reruns
 def rerun():
+    """Helper function for page reruns"""
     try:
         st.rerun()
     except AttributeError:
         st.experimental_rerun()
 
-# Set page config before any other Streamlit commands
-st.set_page_config(page_title="Deepfake", page_icon="🕵️", layout="centered")
+# =======================
+# MODEL FUNCTIONS (unchanged)
+# =======================
+@st.cache_resource
+def load_model():
+    model_path = hf_hub_download(repo_id="musabalosimi/deepfake1", filename="my_model1.keras")
+    model = keras.models.load_model(model_path)
+    return model
 
-# Custom CSS for dark blue and cyan-blue theme
-st.markdown("""
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&display=swap');
-        * { font-family: 'Space+Grotesk', sans-serif; }
-        .main { background: linear-gradient(135deg, #001f3f 0%, #00bcd4 100%); color: #ffffff; }
-        .stButton>button { background: #00bcd4; color: white; border-radius: 15px; padding: 10px 24px; border: none; transition: all 0.3s ease; }
-        .stButton>button:hover { background: #008ba3; transform: scale(1.05); }
-        .stFileUploader>div>div>div>div { color: #ffffff; border: 2px dashed #00bcd4; background: rgba(0, 188, 212, 0.1); border-radius: 15px; }
-        .metric-box { background: rgba(0, 188, 212, 0.1); padding: 20px; border-radius: 15px; margin: 10px 0; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
-        .game-image { border: 3px solid transparent; border-radius: 15px; transition: all 0.3s ease; }
-        .game-image:hover { transform: scale(1.02); cursor: pointer; }
-        .welcome-section { background: rgba(255, 255, 255, 0.05); padding: 2rem; border-radius: 15px; margin: 1rem 0; }
-        .pipeline-flow { background: rgba(0, 188, 212, 0.1); padding: 1rem; border-radius: 15px; margin: 1rem 0; text-align: center; }
-        .pipeline-step { display: inline-block; padding: 0.5rem 1rem; margin: 0 0.5rem; background: rgba(0, 188, 212, 0.3); border-radius: 10px; }
-        .pipeline-arrow { display: inline-block; font-size: 1.5rem; }
-    </style>
-""", unsafe_allow_html=True)
+def get_image_hash(image: Image.Image) -> str:
+    buf = io.BytesIO()
+    image.save(buf, format="PNG")
+    return hashlib.sha256(buf.getvalue()).hexdigest()
+
+@st.cache_data(show_spinner=False)
+def predict_image(image_hash: str, _image: Image.Image):
+    model = load_model()
+    img = _image.convert('RGB').resize((299, 299))
+    img_array = np.array(img) / 255.0
+    img_array = np.expand_dims(img_array, axis=0)
+    prediction = model.predict(img_array)
+    prob = prediction[0][0]
+    
+    if prob > 0.5:
+        return [{"label": "real", "score": float(prob)}, {"label": "fake", "score": float(1 - prob)}]
+    else:
+        return [{"label": "fake", "score": float(1 - prob)}, {"label": "real", "score": float(prob)}]
 
 # =======================
-# Welcome Page
+# PAGE LAYOUTS (modified to include image processing)
 # =======================
 def welcome():
     try:
@@ -231,25 +193,10 @@ def welcome():
         <h3>Welcome to the Deepfake Detection final project</h3>
         <p>This application helps you detect AI-generated images using state-of-the-art machine learning models.
            Explore the capabilities of deepfake detection through image analysis or test your skill in the detection challenge game!</p>
-           <h3>🕵️ Made By </h3>
+           <h3>🕵️ Mady By </h3>
             <li><strong>Musab Alosaimi</li>
             <li><strong>Bassam Alanazi</li>
             <li><strong>Abdulazlz AlHwitan</li>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("""
-    <div class="pipeline-flow">
-        <h3>🔄 Pipeline Process</h3>
-        <div>
-            <span class="pipeline-step">Upload Image</span>
-            <span class="pipeline-arrow">➡️</span>
-            <span class="pipeline-step">Face Detection</span>
-            <span class="pipeline-arrow">➡️</span>
-            <span class="pipeline-step">Deepfake Analysis</span>
-            <span class="pipeline-arrow">➡️</span>
-            <span class="pipeline-step">Results</span>
-        </div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -259,9 +206,9 @@ def welcome():
         <div class="welcome-section">
             <h3>🎯 Key Features</h3>
             <ul>
-                <li><strong>Two-Stage Verification</strong>: Face detection followed by deepfake analysis</li>
                 <li><strong>Image Analysis</strong>: Upload an image to check if it's real or AI-generated</li>
                 <li><strong>Detection Game</strong>: Train your eye to spot deepfakes in a fun, interactive game</li>
+                <li><strong>Image Processing</strong>: Apply filters to help analyze images</li>
                 <li><strong>Real-time Predictions</strong>: Get instant results with confidence scores</li>
             </ul>
         </div>
@@ -273,9 +220,9 @@ def welcome():
             <h3>🕹️ How to Use</h3>
             <ol>
                 <li>Use the <strong>Image Analysis</strong> page to check individual images</li>
-                <li>Our system first detects if there's a human face in the image</li>
-                <li>If a face is detected, the deepfake analysis begins</li>
                 <li>Try the <strong>Detection Game</strong> to test your detection skills</li>
+                <li>Use processing tools to enhance image analysis</li>
+                <li>Review the confidence metrics to understand model predictions</li>
             </ol>
         </div>
         """, unsafe_allow_html=True)
@@ -284,9 +231,6 @@ def welcome():
         st.session_state.page = "main"
         rerun()
 
-# =======================
-# Main Page: Image Analysis with Pipeline
-# =======================
 def main():
     try:
         logo_image = Image.open("logo.png")
@@ -316,17 +260,6 @@ def main():
                     st.session_state.pop(key)
             st.session_state.page = "game"
             rerun()
-            
-        st.markdown("""
-        <div style="border-left: 3px solid #00bcd4; padding-left: 1rem; margin: 1rem 0;">
-            <h2 style="color: #00bcd4;">⚙️ Pipeline Mode</h2>
-            <p>Two-stage verification process</p>
-            <ol style="padding-left: 1rem;">
-                <li>Face Detection</li>
-                <li>Deepfake Analysis</li>
-            </ol>
-        </div>
-        """, unsafe_allow_html=True)
 
     col1, col2 = st.columns([4, 3])
     with col1:
@@ -357,95 +290,69 @@ def main():
 
                 if image:
                     st.image(image, use_container_width=True, caption="Selected Image Preview")
+                    # Show image processing options when an image is available
+                    show_image_processing_options(image)
             except Exception as e:
                 st.error(f"Error loading image: {str(e)}")
 
     if (uploaded_file or sample_option != "Select") and 'image' in locals() and image is not None:
         try:
-            # STAGE 1: Face Detection - using the simple classifier approach
-            with st.spinner("🔍 Stage 1: Detecting human faces..."):
-                has_face, face_confidence, _ = simple_face_detection(image)
-            
+            with st.spinner("🔬 Scanning image for AI fingerprints..."):
+                image_hash = get_image_hash(image)
+                result = predict_image(image_hash, image)
+                scores = {r["label"].lower(): r["score"] for r in result}
             st.markdown("---")
-            st.markdown("### 🔎 Face Detection Results")
-            
-            if has_face:
-                st.markdown(f"""
-                <div style="background: rgba(0,255,136,0.2); padding: 1rem; border-radius: 15px; border-left: 5px solid #00ff88;">
-                    <h3 style="margin:0;">✅ Human Face Detected ({face_confidence*100:.1f}% confidence)</h3>
-                    <p style="margin:0; opacity:0.8;">Proceeding to deepfake analysis</p>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                # STAGE 2: Deepfake Detection
-                with st.spinner("🔬 Stage 2: Scanning image for AI fingerprints..."):
-                    image_hash = get_image_hash(image)
-                    result = predict_image(image_hash, image)
-                    scores = {r["label"].lower(): r["score"] for r in result}
-                
-                st.markdown("---")
-                st.markdown("### 📊 Deepfake Detection Report")
+            st.markdown("### 📊 Detection Report")
 
-                col_chart_left, col_chart_right = st.columns(2)
-                with col_chart_left:
-                    real_conf = scores.get("real", 0)
-                    real_chart_data = pd.DataFrame({"Category": ["Real"], "Confidence": [real_conf]})
-                    real_chart = (
-                        alt.Chart(real_chart_data)
-                        .mark_bar(size=40, color="#00ff88")
-                        .encode(
-                            x=alt.X("Category", title=""),
-                            y=alt.Y("Confidence", title="Confidence", scale=alt.Scale(domain=[0, 1])),
-                            tooltip=["Category", "Confidence"]
-                        )
-                        .properties(height=200)
+            col_chart_left, col_chart_right = st.columns(2)
+            with col_chart_left:
+                real_conf = scores.get("real", 0)
+                real_chart_data = pd.DataFrame({"Category": ["Real"], "Confidence": [real_conf]})
+                real_chart = (
+                    alt.Chart(real_chart_data)
+                    .mark_bar(size=40, color="#00ff88")
+                    .encode(
+                        x=alt.X("Category", title=""),
+                        y=alt.Y("Confidence", title="Confidence", scale=alt.Scale(domain=[0, 1])),
+                        tooltip=["Category", "Confidence"]
                     )
-                    st.altair_chart(real_chart, use_container_width=True)
+                    .properties(height=200)
+                )
+                st.altair_chart(real_chart, use_container_width=True)
 
-                with col_chart_right:
-                    fake_conf = scores.get("fake", 0)
-                    fake_chart_data = pd.DataFrame({"Category": ["Fake"], "Confidence": [fake_conf]})
-                    fake_chart = (
-                        alt.Chart(fake_chart_data)
-                        .mark_bar(size=40, color="#ff4d4d")
-                        .encode(
-                            x=alt.X("Category", title=""),
-                            y=alt.Y("Confidence", title="Confidence", scale=alt.Scale(domain=[0, 1])),
-                            tooltip=["Category", "Confidence"]
-                        )
-                        .properties(height=200)
+            with col_chart_right:
+                fake_conf = scores.get("fake", 0)
+                fake_chart_data = pd.DataFrame({"Category": ["Fake"], "Confidence": [fake_conf]})
+                fake_chart = (
+                    alt.Chart(fake_chart_data)
+                    .mark_bar(size=40, color="#ff4d4d")
+                    .encode(
+                        x=alt.X("Category", title=""),
+                        y=alt.Y("Confidence", title="Confidence", scale=alt.Scale(domain=[0, 1])),
+                        tooltip=["Category", "Confidence"]
                     )
-                    st.altair_chart(fake_chart, use_container_width=True)
+                    .properties(height=200)
+                )
+                st.altair_chart(fake_chart, use_container_width=True)
 
-                final_pred = max(scores, key=scores.get)
-                if final_pred == "fake":
-                    st.markdown(f"""
-                    <div style="background: rgba(255,77,77,0.2); padding: 1rem; border-radius: 15px; border-left: 5px solid #ff4d4d;">
-                        <h3 style="margin:0;">🚨 AI Detected! ({scores[final_pred]*100:.2f}% confidence)</h3>
-                        <p style="margin:0; opacity:0.8;">This image shows signs of artificial generation</p>
-                    </div>
-                    """, unsafe_allow_html=True)
-                else:
-                    st.markdown(f"""
-                    <div style="background: rgba(0,255,136,0.2); padding: 1rem; border-radius: 15px; border-left: 5px solid #00ff88;">
-                        <h3 style="margin:0;">✅ Authentic Content ({scores[final_pred]*100:.2f}% confidence)</h3>
-                        <p style="margin:0; opacity:0.8;">No significant AI manipulation detected</p>
-                    </div>
-                    """, unsafe_allow_html=True)
-            else:
+            final_pred = max(scores, key=scores.get)
+            if final_pred == "fake":
                 st.markdown(f"""
                 <div style="background: rgba(255,77,77,0.2); padding: 1rem; border-radius: 15px; border-left: 5px solid #ff4d4d;">
-                    <h3 style="margin:0;">❌ No Human Face Detected</h3>
-                    <p style="margin:0; opacity:0.8;">Unable to proceed with deepfake analysis. Please upload an image containing a human face.</p>
+                    <h3 style="margin:0;">🚨 AI Detected! ({scores[final_pred]*100:.2f}% confidence)</h3>
+                    <p style="margin:0; opacity:0.8;">This image shows signs of artificial generation</p>
                 </div>
                 """, unsafe_allow_html=True)
-                
+            else:
+                st.markdown(f"""
+                <div style="background: rgba(0,255,136,0.2); padding: 1rem; border-radius: 15px; border-left: 5px solid #00ff88;">
+                    <h3 style="margin:0;">✅ Authentic Content ({scores[final_pred]*100:.2f}% confidence)</h3>
+                    <p style="margin:0; opacity:0.8;">No significant AI manipulation detected</p>
+                </div>
+                """, unsafe_allow_html=True)
         except Exception as e:
             st.error(f"🔧 Analysis error: {str(e)}")
 
-# =======================
-# Game Page: Swipe-based Detection Challenge
-# =======================
 def game():
     st.title("Deepfake Game")
     st.write("Guess which image is real! You have 5 rounds.")
@@ -557,8 +464,26 @@ def game():
         rerun()
 
 # =======================
-# Page Routing
+# APP CONFIG AND ROUTING
 # =======================
+st.set_page_config(page_title="Deepfake", page_icon="🕵️", layout="centered")
+
+# Custom CSS for dark blue and cyan-blue theme
+st.markdown("""
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&display=swap');
+        * { font-family: 'Space+Grotesk', sans-serif; }
+        .main { background: linear-gradient(135deg, #001f3f 0%, #00bcd4 100%); color: #ffffff; }
+        .stButton>button { background: #00bcd4; color: white; border-radius: 15px; padding: 10px 24px; border: none; transition: all 0.3s ease; }
+        .stButton>button:hover { background: #008ba3; transform: scale(1.05); }
+        .stFileUploader>div>div>div>div { color: #ffffff; border: 2px dashed #00bcd4; background: rgba(0, 188, 212, 0.1); border-radius: 15px; }
+        .metric-box { background: rgba(0, 188, 212, 0.1); padding: 20px; border-radius: 15px; margin: 10px 0; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+        .game-image { border: 3px solid transparent; border-radius: 15px; transition: all 0.3s ease; }
+        .game-image:hover { transform: scale(1.02); cursor: pointer; }
+        .welcome-section { background: rgba(255, 255, 255, 0.05); padding: 2rem; border-radius: 15px; margin: 1rem 0; }
+    </style>
+""", unsafe_allow_html=True)
+
 if __name__ == "__main__":
     if "page" not in st.session_state:
         st.session_state.page = "welcome"
