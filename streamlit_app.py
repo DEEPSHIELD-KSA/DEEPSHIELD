@@ -1,21 +1,12 @@
 import streamlit as st
 from PIL import Image
+from transformers import pipeline
 import pandas as pd
 import altair as alt
 import io
 import hashlib
 import random
 import os
-import numpy as np
-from huggingface_hub import hf_hub_download
-import keras
-import tensorflow as tf
-import logging
-
-# Configure logging
-logging.basicConfig(level=logging.INFO, 
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
 
 # ----- Helper functions for fetching images for the game -----
 def fetch_real_image():
@@ -105,72 +96,7 @@ st.markdown("""
 # Load the deepfake detection model (cached so it loads only once)
 @st.cache_resource
 def load_model():
-    try:
-        model_path = hf_hub_download(repo_id="musabalosimi/deepfake1", filename="my_model1.keras")
-        logger.info(f"Model downloaded from Hugging Face Hub: {model_path}")
-        
-        model = keras.models.load_model(model_path)
-        logger.info(f"Model loaded successfully")
-        
-        # Get input shape information
-        input_shape = model.layers[0].input_shape
-        if isinstance(input_shape, list):
-            input_shape = input_shape[0]  # Get the first input shape if there are multiple
-        
-        # Store the input shape in session state for later use
-        if input_shape and len(input_shape) == 4:  # Should be (None, height, width, channels)
-            st.session_state.model_input_height = input_shape[1]
-            st.session_state.model_input_width = input_shape[2]
-            st.session_state.model_input_channels = input_shape[3]
-            logger.info(f"Model expects input shape: {input_shape}")
-        else:
-            # Default to common values if we can't determine
-            st.session_state.model_input_height = 299
-            st.session_state.model_input_width = 299
-            st.session_state.model_input_channels = 3
-            logger.warning(f"Could not determine model input shape, using defaults: (None, 299, 299, 3)")
-        
-        return model
-    except Exception as e:
-        logger.error(f"Error loading model: {str(e)}")
-        st.error(f"Error loading model: {str(e)}")
-        return None
-
-# Image preprocessing function with dynamic sizing
-def preprocess_image(image):
-    try:
-        # Get the model input dimensions from session state or use defaults
-        target_height = st.session_state.get('model_input_height', 299)
-        target_width = st.session_state.get('model_input_width', 299)
-        
-        logger.info(f"Preprocessing image to size: {target_width}x{target_height}")
-        
-        # Resize the image to the target size
-        img = image.resize((target_width, target_height))
-        
-        # Convert to array and ensure RGB (3 channels)
-        img_array = np.array(img)
-        
-        # Handle grayscale images
-        if len(img_array.shape) == 2:
-            img_array = np.stack((img_array,) * 3, axis=-1)
-        
-        # Handle RGBA images (remove alpha channel)
-        if img_array.shape[2] == 4:
-            img_array = img_array[:, :, :3]
-            
-        # Normalize to 0-1 range
-        img_array = img_array / 255.0
-        
-        # Add batch dimension
-        img_array = np.expand_dims(img_array, axis=0)
-        
-        logger.info(f"Preprocessed image shape: {img_array.shape}")
-        return img_array
-    except Exception as e:
-        logger.error(f"Error preprocessing image: {str(e)}")
-        st.error(f"Error preprocessing image: {str(e)}")
-        return None
+    return pipeline("image-classification", model="dima806/deepfake_vs_real_image_detection")
 
 # Helper function to generate a hash for a PIL image
 def get_image_hash(image: Image.Image) -> str:
@@ -181,47 +107,8 @@ def get_image_hash(image: Image.Image) -> str:
 # Cache predictions based on the image hash
 @st.cache_data(show_spinner=False)
 def predict_image(image_hash: str, _image: Image.Image):
-    try:
-        model = load_model()
-        if model is None:
-            return [{"label": "error", "score": 1.0}]
-        
-        processed_image = preprocess_image(_image)
-        if processed_image is None:
-            return [{"label": "error", "score": 1.0}]
-        
-        logger.info(f"Making prediction with model")
-        prediction = model.predict(processed_image)
-        
-        # Handle different output shapes
-        if isinstance(prediction, list):
-            prediction = prediction[0]  # Take first output if multiple outputs
-        
-        if len(prediction.shape) > 1 and prediction.shape[1] > 1:
-            # Multi-class output (e.g., [real_prob, fake_prob])
-            fake_score = float(prediction[0][1])
-            real_score = float(prediction[0][0])
-        else:
-            # Binary output (probability of fake)
-            fake_score = float(prediction[0][0])
-            real_score = 1.0 - fake_score
-        
-        logger.info(f"Prediction results - Real: {real_score:.4f}, Fake: {fake_score:.4f}")
-        
-        result = [
-            {"label": "real", "score": real_score},
-            {"label": "fake", "score": fake_score}
-        ]
-        
-        return result
-    except Exception as e:
-        logger.error(f"Error in prediction: {str(e)}")
-        # Return a placeholder result with error indication
-        return [
-            {"label": "real", "score": 0.5},
-            {"label": "fake", "score": 0.5},
-            {"label": "error", "score": 1.0}
-        ]
+    model = load_model()
+    return model(_image)
 
 # =======================
 # Welcome Page
@@ -321,10 +208,6 @@ def main():
             ["Select", "Real Sample", "Fake Sample"],
             help="Explore pre-loaded examples to test the system"
         )
-        
-        # Debug checkbox (can be removed in production)
-        show_debug = st.checkbox("Show Debug Info", value=False)
-        
     with col2:
         if uploaded_file or sample_option != "Select":
             st.markdown("### 🔍 Preview")
@@ -350,33 +233,10 @@ def main():
 
     if (uploaded_file or sample_option != "Select") and 'image' in locals() and image is not None:
         try:
-            # Make sure model is loaded before prediction
-            if 'model_input_height' not in st.session_state:
-                with st.spinner("Loading model..."):
-                    load_model()
-            
             with st.spinner("🔬 Scanning image for AI fingerprints..."):
                 image_hash = get_image_hash(image)
                 result = predict_image(image_hash, image)
-                
-                # Check if an error occurred during prediction
-                error_occurred = any(r.get("label") == "error" for r in result)
-                if error_occurred:
-                    filtered_result = [r for r in result if r.get("label") != "error"]
-                    scores = {r["label"].lower(): r["score"] for r in filtered_result}
-                    st.warning("⚠️ The model encountered some issues but still produced a result. The confidence score may be less reliable.")
-                else:
-                    scores = {r["label"].lower(): r["score"] for r in result}
-            
-            # Show debug info if requested
-            if show_debug:
-                st.markdown("### 🛠️ Debug Information")
-                st.json({
-                    "model_input_dimensions": f"{st.session_state.get('model_input_width', 'unknown')}x{st.session_state.get('model_input_height', 'unknown')}",
-                    "original_image_size": f"{image.width}x{image.height}",
-                    "prediction_raw_output": result
-                })
-            
+                scores = {r["label"].lower(): r["score"] for r in result}
             st.markdown("---")
             st.markdown("### 📊 Detection Report")
 
@@ -427,12 +287,7 @@ def main():
                 </div>
                 """, unsafe_allow_html=True)
         except Exception as e:
-            logger.error(f"Analysis error: {str(e)}")
             st.error(f"🔧 Analysis error: {str(e)}")
-            st.info("If you're encountering persistent errors, try the following troubleshooting steps:\n"
-                   "1. Make sure your model is properly loaded from Hugging Face\n"
-                   "2. Check if the model expects a specific input size\n"
-                   "3. Verify that TensorFlow and Keras are properly installed")
 
 # =======================
 # Game Page: Swipe-based Detection Challenge
@@ -551,16 +406,6 @@ def game():
 # Page Routing
 # =======================
 if __name__ == "__main__":
-    # Initialize the model at startup
-    if "model_loaded" not in st.session_state:
-        try:
-            with st.spinner("Initializing DeepFake detection model..."):
-                load_model()
-                st.session_state.model_loaded = True
-        except Exception as e:
-            logger.error(f"Error initializing model: {str(e)}")
-            st.session_state.model_loaded = False
-            
     if "page" not in st.session_state:
         st.session_state.page = "welcome"
 
