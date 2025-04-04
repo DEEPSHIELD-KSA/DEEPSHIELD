@@ -9,7 +9,6 @@ import os
 from huggingface_hub import hf_hub_download
 import keras
 import numpy as np
-import cv2  # For face detection
 
 # ----- Face Detection Setup -----
 # Load a pre-trained face detection model (Haar Cascade)
