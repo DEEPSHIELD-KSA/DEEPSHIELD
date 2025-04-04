@@ -1,12 +1,15 @@
 import streamlit as st
 from PIL import Image
-from transformers import pipeline
 import pandas as pd
 import altair as alt
 import io
 import hashlib
 import random
 import os
+import numpy as np
+import tensorflow as tf
+from tensorflow import keras
+from huggingface_hub import hf_hub_download
 
 # ----- Helper functions for fetching images for the game -----
 def fetch_real_image():
@@ -93,10 +96,34 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Load the deepfake detection model (cached so it loads only once)
+# Load the custom Keras model (cached so it loads only once)
 @st.cache_resource
 def load_model():
-    return pipeline("image-classification", model="dima806/deepfake_vs_real_image_detection")
+    try:
+        # Download model from Hugging Face Hub
+        model_path = hf_hub_download(repo_id="musabalosimi/deepfake1", filename="my_model1.keras")
+        model = keras.models.load_model(model_path)
+        return model
+    except Exception as e:
+        st.error(f"Error loading model: {str(e)}")
+        return None
+
+# Helper function to preprocess an image for the model
+def preprocess_image(image):
+    # Convert to RGB in case of RGBA or other formats
+    if image.mode != 'RGB':
+        image = image.convert('RGB')
+    
+    # Resize to the expected input size (299x299 for your model)
+    resized_img = image.resize((299, 299))
+    
+    # Convert to numpy array and normalize
+    img_array = np.array(resized_img) / 255.0
+    
+    # Add batch dimension
+    img_array = np.expand_dims(img_array, axis=0)
+    
+    return img_array
 
 # Helper function to generate a hash for a PIL image
 def get_image_hash(image: Image.Image) -> str:
@@ -108,7 +135,18 @@ def get_image_hash(image: Image.Image) -> str:
 @st.cache_data(show_spinner=False)
 def predict_image(image_hash: str, _image: Image.Image):
     model = load_model()
-    return model(_image)
+    if model is None:
+        return {"real": 0.5, "fake": 0.5}  # Return default values if model fails to load
+    
+    # Preprocess the image
+    processed_img = preprocess_image(_image)
+    
+    # Make prediction
+    prediction = model.predict(processed_img)
+    prob = float(prediction[0][0])
+    
+    # Return in a format similar to the original code
+    return {"real": prob, "fake": 1-prob}
 
 # =======================
 # Welcome Page
@@ -127,10 +165,10 @@ def welcome():
         <h3>Welcome to the Deepfake Detection final project</h3>
         <p>This application helps you detect AI-generated images using state-of-the-art machine learning models.
            Explore the capabilities of deepfake detection through image analysis or test your skill in the detection challenge game!</p>
-           <h3>🕵️ Mady By </h3>
+           <h3>🕵️ Made By </h3>
             <li><strong>Musab Alosaimi</li>
             <li><strong>Bassam Alanazi</li>
-            <li><strong>Abdulazlz AlHwitan</li>
+            <li><strong>Abdulaziz AlHwitan</li>
     </div>
     """, unsafe_allow_html=True)
 
@@ -235,8 +273,7 @@ def main():
         try:
             with st.spinner("🔬 Scanning image for AI fingerprints..."):
                 image_hash = get_image_hash(image)
-                result = predict_image(image_hash, image)
-                scores = {r["label"].lower(): r["score"] for r in result}
+                scores = predict_image(image_hash, image)
             st.markdown("---")
             st.markdown("### 📊 Detection Report")
 
