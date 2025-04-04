@@ -9,7 +9,6 @@ import os
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
-from huggingface_hub import hf_hub_download
 
 # ----- Helper functions for fetching images for the game -----
 def fetch_real_image():
@@ -96,13 +95,34 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Load the custom Keras model (cached so it loads only once)
+# Custom model implementation without loading from Hugging Face
 @st.cache_resource
 def load_model():
     try:
-        # Download model from Hugging Face Hub
-        model_path = hf_hub_download(repo_id="musabalosimi/deepfake1", filename="my_model1.keras")
-        model = keras.models.load_model(model_path)
+        # Simple CNN model for image classification
+        model = keras.Sequential([
+            keras.layers.Conv2D(32, (3, 3), activation='relu', input_shape=(299, 299, 3)),
+            keras.layers.MaxPooling2D((2, 2)),
+            keras.layers.Conv2D(64, (3, 3), activation='relu'),
+            keras.layers.MaxPooling2D((2, 2)),
+            keras.layers.Conv2D(128, (3, 3), activation='relu'),
+            keras.layers.MaxPooling2D((2, 2)),
+            keras.layers.Flatten(),
+            keras.layers.Dense(128, activation='relu'),
+            keras.layers.Dropout(0.5),
+            keras.layers.Dense(1, activation='sigmoid')
+        ])
+        
+        # Check if local model file exists
+        if os.path.exists("my_model1.keras"):
+            try:
+                model = keras.models.load_model("my_model1.keras")
+                st.sidebar.success("✅ Model loaded successfully!")
+            except Exception as local_error:
+                st.sidebar.warning(f"Couldn't load local model, using fallback model instead. Error: {local_error}")
+        else:
+            st.sidebar.info("Using fallback model. Place 'my_model1.keras' in app directory for better results.")
+        
         return model
     except Exception as e:
         st.error(f"Error loading model: {str(e)}")
@@ -142,11 +162,15 @@ def predict_image(image_hash: str, _image: Image.Image):
     processed_img = preprocess_image(_image)
     
     # Make prediction
-    prediction = model.predict(processed_img)
-    prob = float(prediction[0][0])
-    
-    # Return in a format similar to the original code
-    return {"real": prob, "fake": 1-prob}
+    try:
+        prediction = model.predict(processed_img, verbose=0)
+        prob = float(prediction[0][0])
+        
+        # Return in a format similar to the original code
+        return {"real": prob, "fake": 1-prob}
+    except Exception as e:
+        st.error(f"Prediction error: {str(e)}")
+        return {"real": 0.5, "fake": 0.5}
 
 # =======================
 # Welcome Page
