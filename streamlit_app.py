@@ -93,10 +93,11 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Load the deepfake detection model (cached so it loads only once)
+# Download and load the custom model from Hugging Face
 @st.cache_resource
 def load_model():
-    return pipeline("image-classification", model="dima806/deepfake_vs_real_image_detection")
+    model_path = hf_hub_download(repo_id="musabalosimi/deepfake1", filename="my_model1.keras")
+    return keras.models.load_model(model_path)
 
 # Helper function to generate a hash for a PIL image
 def get_image_hash(image: Image.Image) -> str:
@@ -104,11 +105,21 @@ def get_image_hash(image: Image.Image) -> str:
     image.save(buf, format="PNG")
     return hashlib.sha256(buf.getvalue()).hexdigest()
 
+# Preprocess image for the model
+def preprocess_image(image: Image.Image):
+    image = image.resize((128, 128))  # Adjust size based on your model's expected input
+    image = np.array(image) / 255.0   # Normalize pixel values
+    image = np.expand_dims(image, axis=0)  # Add batch dimension
+    return image
+
 # Cache predictions based on the image hash
 @st.cache_data(show_spinner=False)
 def predict_image(image_hash: str, _image: Image.Image):
     model = load_model()
-    return model(_image)
+    preprocessed_img = preprocess_image(_image)
+    prediction = model.predict(preprocessed_img)[0]  # Assuming binary classification
+    return {"real": float(prediction[0]), "fake": float(prediction[1])}
+
 
 # =======================
 # Welcome Page
