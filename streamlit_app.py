@@ -1,5 +1,3 @@
-# Load model directly
-from transformers import pipeline
 import streamlit as st
 from PIL import Image
 import pandas as pd
@@ -11,28 +9,6 @@ import os
 from huggingface_hub import hf_hub_download
 import keras
 import numpy as np
-
-# ----- Human Verification Pipeline -----
-@st.cache_resource
-def load_human_pipeline():
-    try:
-        return pipeline("image-classification", 
-                       model="prithivMLmods/Human-vs-NonHuman-Detection")
-    except Exception as e:
-        st.error(f"Failed to load human verification model: {str(e)}")
-        st.stop()
-
-def is_human(image: Image.Image) -> bool:
-    """Check if image contains a human face using pipeline"""
-    try:
-        pipe = load_human_pipeline()
-        results = pipe(image)
-        return any((pred['label'] == 'human' and pred['score'] > 0.5) 
-               for pred in results)
-    except Exception as e:
-        st.error(f"Human verification failed: {str(e)}")
-        st.stop()
-        return False
 
 # ----- Helper functions for fetching images for the game -----
 def fetch_real_image():
@@ -270,10 +246,6 @@ def main():
 
                 if image:
                     st.image(image, use_container_width=True, caption="Selected Image Preview")
-                    # Human verification check
-                    if not is_human(image):
-                        st.error("🚫 No human face detected! Please upload an image with a clear human face.")
-                        return
             except Exception as e:
                 st.error(f"Error loading image: {str(e)}")
 
