@@ -9,6 +9,39 @@ import os
 from huggingface_hub import hf_hub_download
 import keras
 import numpy as np
+import cv2  # For face detection
+
+# ----- Face Detection Setup -----
+# Load a pre-trained face detection model (Haar Cascade)
+@st.cache_resource
+def load_face_detector():
+    # Download the Haar Cascade file
+    cascade_path = hf_hub_download(
+        repo_id="rishikksh20/haarcascade_frontalface_default",
+        filename="haarcascade_frontalface_default.xml"
+    )
+    return cv2.CascadeClassifier(cascade_path)
+
+# Function to detect faces in an image
+def contains_human_face(image):
+    # Convert PIL Image to OpenCV format
+    opencv_image = np.array(image)
+    # Convert RGB to BGR (OpenCV uses BGR)
+    opencv_image = opencv_image[:, :, ::-1].copy()
+    
+    # Convert to grayscale for face detection
+    gray = cv2.cvtColor(opencv_image, cv2.COLOR_BGR2GRAY)
+    
+    # Detect faces
+    face_cascade = load_face_detector()
+    faces = face_cascade.detectMultiScale(
+        gray,
+        scaleFactor=1.1,
+        minNeighbors=5,
+        minSize=(30, 30)
+    )
+    
+    return len(faces) > 0
 
 # ----- Helper functions for fetching images for the game -----
 def fetch_real_image():
@@ -111,6 +144,11 @@ def get_image_hash(image: Image.Image) -> str:
 # Cache predictions based on the image hash
 @st.cache_data(show_spinner=False)
 def predict_image(image_hash: str, _image: Image.Image):
+    # First check if image contains a human face
+    if not contains_human_face(_image):
+        return None  # Signal that no face was detected
+    
+    # If face detected, proceed with deepfake prediction
     model = load_model()
     
     # Preprocess the image
@@ -159,10 +197,10 @@ def welcome():
             <h3>🎯 Key Features</h3>
             <ul>
                 <li><strong>Image Analysis</strong>: Upload an image to check if it's real or AI-generated</li>
+                <li><strong>Face Detection</strong>: Automatic detection of human faces before analysis</li>
                 <li><strong>Detection Game</strong>: Train your eye to spot deepfakes in a fun, interactive game</li>
                 <li><strong>Real-time Predictions</strong>: Get instant results with confidence scores</li>
                 <li><strong>Educational Insights</strong>: Learn about deepfake technology and detection methods</li>
-               
             </ul>
         </div>
         """, unsafe_allow_html=True)
@@ -173,6 +211,7 @@ def welcome():
             <h3>🕹️ How to Use</h3>
             <ol>
                 <li>Use the <strong>Image Analysis</strong> page to check individual images</li>
+                <li>Ensure your images contain visible human faces for best results</li>
                 <li>Try the <strong>Detection Game</strong> to test your detection skills</li>
                 <li>Review the confidence metrics to understand model predictions</li>
                 <li>Explore different sample images to see varied results</li>
@@ -220,6 +259,11 @@ def main():
     col1, col2 = st.columns([4, 3])
     with col1:
         st.markdown("### 📤 Image Analysis Zone")
+        st.markdown("""
+        <div style="background: rgba(255, 255, 255, 0.05); padding: 1rem; border-radius: 10px; margin-bottom: 1rem;">
+            <p>⚠️ <b>Note:</b> For accurate deepfake detection, please upload images containing human faces.</p>
+        </div>
+        """, unsafe_allow_html=True)
         uploaded_file = st.file_uploader("", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
         sample_option = st.selectbox(
             "Or choose from samples:",
@@ -251,10 +295,23 @@ def main():
 
     if (uploaded_file or sample_option != "Select") and 'image' in locals() and image is not None:
         try:
+            with st.spinner("🔍 Checking for human face..."):
+                if not contains_human_face(image):
+                    st.error("❌ No human face detected. Please upload an image with a clear human face for deepfake analysis.")
+                    return
+                
+                st.success("✅ Human face detected. Proceeding with deepfake analysis.")
+            
             with st.spinner("🔬 Scanning image for AI fingerprints..."):
                 image_hash = get_image_hash(image)
                 result = predict_image(image_hash, image)
+                
+                if result is None:
+                    st.error("❌ An error occurred during analysis. Please try again with a different image.")
+                    return
+                    
                 scores = {r["label"].lower(): r["score"] for r in result}
+            
             st.markdown("---")
             st.markdown("### 📊 Detection Report")
 
@@ -360,6 +417,12 @@ def game():
             if st.button("Return to Main Page"):
                 st.session_state.page = "main"
                 rerun()
+            return
+
+        # Verify both images have faces
+        if not contains_human_face(real_image) or not contains_human_face(fake_image):
+            st.error("One or both of the selected images don't contain detectable human faces. Selecting new images...")
+            rerun()
             return
 
         if random.choice([True, False]):
