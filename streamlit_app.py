@@ -1,3 +1,5 @@
+# Load model directly
+from transformers import pipeline
 import streamlit as st
 from PIL import Image
 import pandas as pd
@@ -9,7 +11,6 @@ import os
 from huggingface_hub import hf_hub_download
 import keras
 import numpy as np
-from transformers import pipeline
 
 # ----- Human Verification Pipeline -----
 @st.cache_resource
@@ -26,7 +27,6 @@ def is_human(image: Image.Image) -> bool:
     try:
         pipe = load_human_pipeline()
         results = pipe(image)
-        # Check if top prediction is 'human' with confidence > 50%
         return any((pred['label'] == 'human' and pred['score'] > 0.5) 
                for pred in results)
     except Exception as e:
@@ -269,13 +269,13 @@ def main():
                         st.error("Fake sample image not found. Please check 'samples/fake_sample.jpg'")
 
                 if image:
-                    st.image(image, use_container_width=True, caption="Preview")
-                    # Human verification with pipeline
+                    st.image(image, use_container_width=True, caption="Selected Image Preview")
+                    # Human verification check
                     if not is_human(image):
                         st.error("🚫 No human face detected! Please upload an image with a clear human face.")
                         return
             except Exception as e:
-                st.error(f"Error: {str(e)}")
+                st.error(f"Error loading image: {str(e)}")
 
     if (uploaded_file or sample_option != "Select") and 'image' in locals() and image is not None:
         try:
