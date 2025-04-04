@@ -183,7 +183,7 @@ def welcome():
         <h3>Welcome to the Deepfake Detection final project</h3>
         <p>This application helps you detect AI-generated images using state-of-the-art machine learning models.
            Explore the capabilities of deepfake detection through image analysis or test your skill in the detection challenge game!</p>
-           <h3>🕵️ Mady By </h3>
+           <h3>🕵️ Made By </h3>
             <li><strong>Musab Alosaimi</li>
             <li><strong>Bassam Alanazi</li>
             <li><strong>Abdulazlz AlHwitan</li>
@@ -195,13 +195,11 @@ def welcome():
         st.markdown("""
         <div class="welcome-section">
             <h3>🎯 Key Features</h3>
-            <ul>
                 <li><strong>Image Analysis</strong>: Upload an image to check if it's real or AI-generated</li>
                 <li><strong>Face Detection</strong>: Automatic detection of human faces before analysis</li>
                 <li><strong>Detection Game</strong>: Train your eye to spot deepfakes in a fun, interactive game</li>
                 <li><strong>Real-time Predictions</strong>: Get instant results with confidence scores</li>
                 <li><strong>Educational Insights</strong>: Learn about deepfake technology and detection methods</li>
-            </ul>
         </div>
         """, unsafe_allow_html=True)
 
