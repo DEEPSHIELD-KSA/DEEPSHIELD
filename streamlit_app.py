@@ -104,8 +104,8 @@ def load_model():
     return model
 
 # Image preprocessing function
-def preprocess_image(image, target_size=(224, 224)):
-    # Resize the image to the target size
+def preprocess_image(image, target_size=(299, 299)):
+    # Resize the image to the target size of 299x299 as required by the model
     img = image.resize(target_size)
     # Convert to array and normalize
     img_array = np.array(img) / 255.0
