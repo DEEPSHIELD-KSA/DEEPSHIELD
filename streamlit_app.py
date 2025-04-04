@@ -15,9 +15,13 @@ import numpy as np
 # ----- Human Verification System -----
 @st.cache_resource
 def load_human_model():
-    processor = AutoProcessor.from_pretrained("prithivMLmods/Human-vs-NonHuman-Detection")
-    model = AutoModelForImageClassification.from_pretrained("prithivMLmods/Human-vs-NonHuman-Detection")
-    return processor, model
+    try:
+        processor = AutoProcessor.from_pretrained("prithivMLmods/Human-vs-NonHuman-Detection")
+        model = AutoModelForImageClassification.from_pretrained("prithivMLmods/Human-vs-NonHuman-Detection")
+        return processor, model
+    except Exception as e:
+        st.error(f"Failed to load human verification model: {str(e)}")
+        st.stop()
 
 def is_human(image: Image.Image) -> bool:
     """Check if image contains a human face"""
@@ -28,7 +32,8 @@ def is_human(image: Image.Image) -> bool:
         predicted_class = outputs.logits.argmax(-1).item()
         return model.config.id2label[predicted_class] == 'human'
     except Exception as e:
-        st.error(f"Human verification error: {str(e)}")
+        st.error(f"Human verification failed: {str(e)}")
+        st.stop()
         return False
 
 # ----- Helper functions for fetching images for the game -----
