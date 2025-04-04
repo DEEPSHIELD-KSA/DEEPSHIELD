@@ -1,5 +1,5 @@
 import streamlit as st
-from PIL import Image
+from PIL import Image, ImageDraw
 import pandas as pd
 import altair as alt
 import io
@@ -9,53 +9,91 @@ import os
 from huggingface_hub import hf_hub_download
 import keras
 import numpy as np
-import cv2
 
-# ----- Face Detection Model -----
+# ----- Face Detection Model without cv2 -----
 @st.cache_resource
 def load_face_detector():
-    """Load the pre-trained face detection model from OpenCV"""
-    face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-    return face_cascade
+    """Load a face detection model from Hugging Face"""
+    # Use mobilenet based model for face detection
+    model_path = hf_hub_download(repo_id="musabalosimi/face_detector", filename="face_detection_model.keras")
+    face_model = keras.models.load_model(model_path)
+    return face_model
 
 def detect_face(image):
     """
-    Detect if there's a human face in the image
+    Detect if there's a human face in the image without using cv2
     Returns: (has_face, face_count, processed_image)
     """
-    face_cascade = load_face_detector()
+    face_model = load_face_detector()
     
-    # Convert PIL image to CV2 format
-    img = np.array(image.convert('RGB'))
-    # Convert RGB to BGR (OpenCV format)
-    img_cv = img[:, :, ::-1].copy()
+    # Prepare the image for the model
+    img = image.convert('RGB').resize((224, 224))
+    img_array = np.array(img) / 255.0
+    img_array = np.expand_dims(img_array, axis=0)
     
-    # Convert to grayscale for face detection
-    gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
+    # Get prediction - output should be bounding boxes [x, y, width, height, confidence]
+    # This is a simplified example - adjust based on your actual model's output format
+    predictions = face_model.predict(img_array)
     
-    # Detect faces
-    faces = face_cascade.detectMultiScale(
-        gray,
-        scaleFactor=1.1,
-        minNeighbors=5,
-        minSize=(30, 30),
-        flags=cv2.CASCADE_SCALE_IMAGE
-    )
+    # Threshold for face detection confidence
+    confidence_threshold = 0.7
+    
+    # Process predictions to get face bounding boxes
+    # This is a placeholder - adjust based on your model's output format
+    face_boxes = []
+    for pred in predictions[0]:
+        confidence = pred[4]
+        if confidence > confidence_threshold:
+            # Scale coordinates to original image size
+            scale_x = image.width / 224
+            scale_y = image.height / 224
+            x = int(pred[0] * scale_x)
+            y = int(pred[1] * scale_y)
+            width = int(pred[2] * scale_x)
+            height = int(pred[3] * scale_y)
+            face_boxes.append((x, y, width, height, confidence))
     
     # Create a copy of the image to draw on
-    img_with_faces = img_cv.copy()
+    draw_image = image.copy()
+    draw = ImageDraw.Draw(draw_image)
     
     # Draw rectangles around detected faces
-    for (x, y, w, h) in faces:
-        cv2.rectangle(img_with_faces, (x, y), (x+w, y+h), (0, 255, 0), 2)
+    for x, y, width, height, _ in face_boxes:
+        draw.rectangle([(x, y), (x + width, y + height)], outline="green", width=3)
     
-    # Convert back to RGB for PIL
-    img_with_faces_rgb = cv2.cvtColor(img_with_faces, cv2.COLOR_BGR2RGB)
+    return len(face_boxes) > 0, len(face_boxes), draw_image
+
+# ----- Alternative Face Detection using Image Classification -----
+@st.cache_resource
+def load_face_classifier():
+    """
+    Load a simpler face classifier model that just predicts if an image contains a face
+    This is a more lightweight alternative that doesn't require OpenCV
+    """
+    model_path = hf_hub_download(repo_id="musabalosimi/face_classifier", filename="face_classifier.keras")
+    classifier = keras.models.load_model(model_path)
+    return classifier
+
+def simple_face_detection(image):
+    """
+    A simpler approach that just classifies if an image contains a face
+    Returns: (has_face, confidence, image)
+    """
+    classifier = load_face_classifier()
     
-    # Convert back to PIL image
-    result_image = Image.fromarray(img_with_faces_rgb)
+    # Resize and prepare image
+    img = image.convert('RGB').resize((224, 224))
+    img_array = np.array(img) / 255.0
+    img_array = np.expand_dims(img_array, axis=0)
     
-    return len(faces) > 0, len(faces), result_image
+    # Predict if image contains a face (binary classification)
+    prediction = classifier.predict(img_array)
+    face_probability = prediction[0][0]
+    
+    # Determine if a face is present based on probability
+    has_face = face_probability > 0.5
+    
+    return has_face, face_probability, image
 
 # ----- Deepfake Detection Model -----
 @st.cache_resource
@@ -324,9 +362,9 @@ def main():
 
     if (uploaded_file or sample_option != "Select") and 'image' in locals() and image is not None:
         try:
-            # STAGE 1: Face Detection
+            # STAGE 1: Face Detection - using the simple classifier approach
             with st.spinner("🔍 Stage 1: Detecting human faces..."):
-                has_face, face_count, face_image = detect_face(image)
+                has_face, face_confidence, _ = simple_face_detection(image)
             
             st.markdown("---")
             st.markdown("### 🔎 Face Detection Results")
@@ -334,12 +372,10 @@ def main():
             if has_face:
                 st.markdown(f"""
                 <div style="background: rgba(0,255,136,0.2); padding: 1rem; border-radius: 15px; border-left: 5px solid #00ff88;">
-                    <h3 style="margin:0;">✅ Human Face Detected ({face_count} {'faces' if face_count > 1 else 'face'})</h3>
+                    <h3 style="margin:0;">✅ Human Face Detected ({face_confidence*100:.1f}% confidence)</h3>
                     <p style="margin:0; opacity:0.8;">Proceeding to deepfake analysis</p>
                 </div>
                 """, unsafe_allow_html=True)
-                
-                st.image(face_image, use_container_width=True, caption="Detected Faces")
                 
                 # STAGE 2: Deepfake Detection
                 with st.spinner("🔬 Stage 2: Scanning image for AI fingerprints..."):
