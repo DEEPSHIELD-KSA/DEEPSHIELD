@@ -93,6 +93,7 @@ st.markdown("""
         .game-image { border: 3px solid transparent; border-radius: 15px; transition: all 0.3s ease; }
         .game-image:hover { transform: scale(1.02); cursor: pointer; }
         .welcome-section { background: rgba(255, 255, 255, 0.05); padding: 2rem; border-radius: 15px; margin: 1rem 0; }
+        .prediction-value { background: rgba(255, 255, 255, 0.1); padding: 1rem; border-radius: 8px; margin: 1rem 0; font-size: 1.2rem; text-align: center; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -138,7 +139,7 @@ def get_image_hash(image: Image.Image) -> str:
 def predict_image(image_hash: str, _image: Image.Image):
     model = load_model()
     if model is None:
-        return {"real": 0.5, "fake": 0.5}  # Return default values if model fails to load
+        return {"raw_prediction": 0.5, "real": 0.5, "fake": 0.5}  # Return default values if model fails to load
     
     # Preprocess the image
     processed_img = preprocess_image(_image)
@@ -146,13 +147,26 @@ def predict_image(image_hash: str, _image: Image.Image):
     # Make prediction
     try:
         prediction = model.predict(processed_img, verbose=0)
-        prob = float(prediction[0][0])
+        raw_prob = float(prediction[0][0])
         
-        # Return in a format similar to the original code
-        return {"real": prob, "fake": 1-prob}
+        # In your model, values > 0.5 mean REAL, < 0.5 mean FAKE
+        # But let's format it to match the expected interface
+        if raw_prob > 0.5:
+            real_prob = raw_prob
+            fake_prob = 1 - raw_prob
+        else:
+            real_prob = raw_prob
+            fake_prob = 1 - raw_prob
+        
+        # Return in the format needed for display
+        return {
+            "raw_prediction": raw_prob,
+            "real": real_prob, 
+            "fake": fake_prob
+        }
     except Exception as e:
         st.error(f"Prediction error: {str(e)}")
-        return {"real": 0.5, "fake": 0.5}
+        return {"raw_prediction": 0.5, "real": 0.5, "fake": 0.5}
 
 # =======================
 # Welcome Page
@@ -280,9 +294,33 @@ def main():
             with st.spinner("🔬 Scanning image for AI fingerprints..."):
                 image_hash = get_image_hash(image)
                 scores = predict_image(image_hash, image)
+                raw_prediction = scores.get("raw_prediction", 0.5)
+            
+            # Display the raw prediction value
+            st.markdown(f"""
+            <div class="prediction-value">
+                <strong>🔍 Prediction value:</strong> {raw_prediction:.4f}
+            </div>
+            """, unsafe_allow_html=True)
+            
             st.markdown("---")
             st.markdown("### 📊 Detection Report")
 
+            # Classification result based on the prediction value
+            if raw_prediction > 0.5:
+                message = f"✅ The image is likely <strong>REAL</strong> ({raw_prediction:.4f})"
+                color = "#00ff88"  # Green for real
+            else:
+                message = f"❌ The image is likely <strong>FAKE</strong> ({raw_prediction:.4f})"
+                color = "#ff4d4d"  # Red for fake
+
+            st.markdown(f"""
+            <div style="background: rgba({color.replace('#', '')[:2]}, {color.replace('#', '')[2:4]}, {color.replace('#', '')[4:]}, 0.2); padding: 1rem; border-radius: 15px; border-left: 5px solid {color}; text-align: center; margin: 1rem 0;">
+                <h3 style="margin:0;">{message}</h3>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # Display the bar charts for visualization
             col_chart_left, col_chart_right = st.columns(2)
             with col_chart_left:
                 real_conf = scores.get("real", 0)
@@ -314,21 +352,6 @@ def main():
                 )
                 st.altair_chart(fake_chart, use_container_width=True)
 
-            final_pred = max(scores, key=scores.get)
-            if final_pred == "fake":
-                st.markdown(f"""
-                <div style="background: rgba(255,77,77,0.2); padding: 1rem; border-radius: 15px; border-left: 5px solid #ff4d4d;">
-                    <h3 style="margin:0;">🚨 AI Detected! ({scores[final_pred]*100:.2f}% confidence)</h3>
-                    <p style="margin:0; opacity:0.8;">This image shows signs of artificial generation</p>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.markdown(f"""
-                <div style="background: rgba(0,255,136,0.2); padding: 1rem; border-radius: 15px; border-left: 5px solid #00ff88;">
-                    <h3 style="margin:0;">✅ Authentic Content ({scores[final_pred]*100:.2f}% confidence)</h3>
-                    <p style="margin:0; opacity:0.8;">No significant AI manipulation detected</p>
-                </div>
-                """, unsafe_allow_html=True)
         except Exception as e:
             st.error(f"🔧 Analysis error: {str(e)}")
 
@@ -425,6 +448,17 @@ def game():
                 else:
                     st.session_state.round_result = "Wrong! 😢"
                 st.session_state.round_submitted = True
+                
+                # Calculate prediction values for both images
+                if not st.session_state.get("prediction_calculated", False):
+                    left_hash = get_image_hash(left_fixed)
+                    right_hash = get_image_hash(right_fixed)
+                    left_score = predict_image(left_hash, left_fixed).get("raw_prediction", 0.5)
+                    right_score = predict_image(right_hash, right_fixed).get("raw_prediction", 0.5)
+                    st.session_state.left_prediction = left_score
+                    st.session_state.right_prediction = right_score
+                    st.session_state.prediction_calculated = True
+                
                 rerun()
 
     if st.session_state.get("round_submitted", False):
@@ -432,10 +466,23 @@ def game():
             st.success(f"{st.session_state.round_result} The {st.session_state.current_round_data['correct_answer']} image is real.")
         else:
             st.error(f"{st.session_state.round_result} The {st.session_state.current_round_data['correct_answer']} image is real.")
+        
+        # Show prediction values if available
+        if hasattr(st.session_state, 'left_prediction') and hasattr(st.session_state, 'right_prediction'):
+            st.markdown(f"""
+            <div class="prediction-value">
+                <strong>Left Image Prediction Value:</strong> {st.session_state.left_prediction:.4f} 
+                ({("REAL" if st.session_state.left_prediction > 0.5 else "FAKE")})
+                <br>
+                <strong>Right Image Prediction Value:</strong> {st.session_state.right_prediction:.4f} 
+                ({("REAL" if st.session_state.right_prediction > 0.5 else "FAKE")})
+            </div>
+            """, unsafe_allow_html=True)
 
         if st.button("Next Round", use_container_width=True):
             st.session_state.game_round += 1
-            for key in ["current_round_data", "round_submitted", "round_result"]:
+            for key in ["current_round_data", "round_submitted", "round_result", "prediction_calculated", 
+                        "left_prediction", "right_prediction"]:
                 if key in st.session_state:
                     st.session_state.pop(key)
             rerun()
