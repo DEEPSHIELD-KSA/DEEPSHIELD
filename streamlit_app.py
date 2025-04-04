@@ -1,12 +1,15 @@
 import streamlit as st
 from PIL import Image
-from transformers import pipeline
 import pandas as pd
 import altair as alt
 import io
 import hashlib
 import random
 import os
+import numpy as np
+from huggingface_hub import hf_hub_download
+import keras
+import tensorflow as tf
 
 # ----- Helper functions for fetching images for the game -----
 def fetch_real_image():
@@ -96,7 +99,19 @@ st.markdown("""
 # Load the deepfake detection model (cached so it loads only once)
 @st.cache_resource
 def load_model():
-    return pipeline("image-classification", model="dima806/deepfake_vs_real_image_detection")
+    model_path = hf_hub_download(repo_id="musabalosimi/deepfake1", filename="my_model1.keras")
+    model = keras.models.load_model(model_path)
+    return model
+
+# Image preprocessing function
+def preprocess_image(image, target_size=(224, 224)):
+    # Resize the image to the target size
+    img = image.resize(target_size)
+    # Convert to array and normalize
+    img_array = np.array(img) / 255.0
+    # Add batch dimension
+    img_array = np.expand_dims(img_array, axis=0)
+    return img_array
 
 # Helper function to generate a hash for a PIL image
 def get_image_hash(image: Image.Image) -> str:
@@ -108,7 +123,20 @@ def get_image_hash(image: Image.Image) -> str:
 @st.cache_data(show_spinner=False)
 def predict_image(image_hash: str, _image: Image.Image):
     model = load_model()
-    return model(_image)
+    processed_image = preprocess_image(_image)
+    prediction = model.predict(processed_image)[0][0]
+    
+    # Create a result format similar to the original pipeline
+    # where score close to 1 means fake, score close to 0 means real
+    fake_score = float(prediction)
+    real_score = 1.0 - fake_score
+    
+    result = [
+        {"label": "real", "score": real_score},
+        {"label": "fake", "score": fake_score}
+    ]
+    
+    return result
 
 # =======================
 # Welcome Page
