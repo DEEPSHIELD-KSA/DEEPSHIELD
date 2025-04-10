@@ -6,9 +6,12 @@ import io
 import hashlib
 import random
 import os
-from huggingface_hub import hf_hub_download
+from huggingface_hub import hf_hub_download, login
 import keras
 import numpy as np
+
+# Authenticate with Hugging Face Hub
+login(token="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")
 
 # ----- Helper functions for fetching images for the game -----
 def fetch_real_image():
@@ -98,9 +101,35 @@ st.markdown("""
 # Load your custom Keras model (cached so it loads only once)
 @st.cache_resource
 def load_model():
-    model_path = hf_hub_download(repo_id="musabalosimi/deepfake1", filename="my_model1.keras")
-    model = keras.models.load_model(model_path)
-    return model
+    try:
+        st.write("🔍 Attempting to download model from Hugging Face Hub...")
+        model_path = hf_hub_download(
+            repo_id="musabalosimi/deepfake1",
+            filename="my_model1.keras",
+            cache_dir="models",
+            token="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"
+        )
+        st.write(f"✅ Model downloaded to: {model_path}")
+        model = keras.models.load_model(model_path)
+        st.success("🚀 Model loaded successfully!")
+        return model
+    except Exception as e:
+        st.error(f"❌ Model loading failed: {str(e)}")
+        st.error("Please check:")
+        st.error("- The repository and filename are correct")
+        st.error("- You have internet access")
+        st.error("- Your Hugging Face token is valid")
+        
+        # Try loading local model as fallback
+        try:
+            if os.path.exists("local_model.keras"):
+                st.warning("Attempting to load local model...")
+                model = keras.models.load_model("local_model.keras")
+                st.success("Local model loaded successfully!")
+                return model
+        except Exception as e:
+            st.error(f"Failed to load local model: {str(e)}")
+        return None
 
 # Helper function to generate a hash for a PIL image
 def get_image_hash(image: Image.Image) -> str:
@@ -112,6 +141,9 @@ def get_image_hash(image: Image.Image) -> str:
 @st.cache_data(show_spinner=False)
 def predict_image(image_hash: str, _image: Image.Image):
     model = load_model()
+    
+    if model is None:
+        return [{"label": "error", "score": 1.0}]
     
     # Preprocess the image
     img = _image.convert('RGB').resize((299, 299))  # Adjust size to match your model's expected input
@@ -250,6 +282,11 @@ def main():
             with st.spinner("🔬 Scanning image for AI fingerprints..."):
                 image_hash = get_image_hash(image)
                 result = predict_image(image_hash, image)
+                
+                if result[0]["label"] == "error":
+                    st.error("Model failed to load. Cannot make predictions.")
+                    return
+                    
                 scores = {r["label"].lower(): r["score"] for r in result}
             st.markdown("---")
             st.markdown("### 📊 Detection Report")
