@@ -6,9 +6,12 @@ import io
 import hashlib
 import random
 import os
-from huggingface_hub import hf_hub_download, login
+from huggingface_hub import login
 import keras
 import numpy as np
+
+# Set Keras backend to JAX
+os.environ["KERAS_BACKEND"] = "jax"
 
 # Authenticate with Hugging Face Hub
 login(token="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")
@@ -98,37 +101,20 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Load your custom Keras model (cached so it loads only once)
+# Load your Keras model from Hugging Face Hub
 @st.cache_resource
 def load_model():
     try:
-        st.write("🔍 Attempting to download model from Hugging Face Hub...")
-        model_path = hf_hub_download(
-            repo_id="musabalosimi/deepfake1",
-            filename="my_model1.keras",
-            cache_dir="models",
-            token="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"
-        )
-        st.write(f"✅ Model downloaded to: {model_path}")
-        model = keras.models.load_model(model_path)
+        st.write("🔍 Loading model from Hugging Face Hub...")
+        model = keras.saving.load_model("hf://musabalosimi/deepfake1")
         st.success("🚀 Model loaded successfully!")
         return model
     except Exception as e:
         st.error(f"❌ Model loading failed: {str(e)}")
         st.error("Please check:")
-        st.error("- The repository and filename are correct")
+        st.error("- The repository exists (musabalosimi/deepfake1)")
         st.error("- You have internet access")
         st.error("- Your Hugging Face token is valid")
-        
-        # Try loading local model as fallback
-        try:
-            if os.path.exists("local_model.keras"):
-                st.warning("Attempting to load local model...")
-                model = keras.models.load_model("local_model.keras")
-                st.success("Local model loaded successfully!")
-                return model
-        except Exception as e:
-            st.error(f"Failed to load local model: {str(e)}")
         return None
 
 # Helper function to generate a hash for a PIL image
@@ -151,14 +137,18 @@ def predict_image(image_hash: str, _image: Image.Image):
     img_array = np.expand_dims(img_array, axis=0)  # Add batch dimension
     
     # Get prediction
-    prediction = model.predict(img_array)
-    prob = prediction[0][0]
-    
-    # Format results to match expected format (real/fake with scores)
-    if prob > 0.5:
-        return [{"label": "real", "score": float(prob)}, {"label": "fake", "score": float(1 - prob)}]
-    else:
-        return [{"label": "fake", "score": float(1 - prob)}, {"label": "real", "score": float(prob)}]
+    try:
+        prediction = model.predict(img_array)
+        prob = prediction[0][0]
+        
+        # Format results to match expected format (real/fake with scores)
+        if prob > 0.5:
+            return [{"label": "real", "score": float(prob)}, {"label": "fake", "score": float(1 - prob)}]
+        else:
+            return [{"label": "fake", "score": float(1 - prob)}, {"label": "real", "score": float(prob)}]
+    except Exception as e:
+        st.error(f"Prediction error: {str(e)}")
+        return [{"label": "error", "score": 1.0}]
 
 # =======================
 # Welcome Page
