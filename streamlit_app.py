@@ -8,6 +8,7 @@ import random
 import os
 import keras
 import numpy as np
+from keras import applications
 
 # Set Keras backend to JAX
 os.environ["KERAS_BACKEND"] = "jax"
@@ -102,8 +103,8 @@ st.markdown("""
 def load_model():
     try:
         st.write("🔍 Loading your deepfake detection model...")
-        model = keras.models.load_model("deepfake_detection_model.h5")
-        st.success("🚀 Model loaded successfully!")
+        model = keras.models.load_model("deepfake_detection_model.h5", compile=False)
+        #st.success("🚀 Model loaded successfully!")
         return model
     except Exception as e:
         st.error(f"❌ Model loading failed: {str(e)}")
@@ -127,9 +128,12 @@ def predict_image(image_hash: str, _image: Image.Image):
     if model is None:
         return [{"label": "error", "score": 1.0}]
     
-    # Preprocess the image
-    img = _image.convert('RGB').resize((299, 299))  # Adjust size to match your model's expected input
-    img_array = np.array(img) / 255.0
+    # Preprocess the image for EfficientNetB0
+    img = _image.convert('RGB').resize((224, 224))  # EfficientNetB0 expects 224x224
+    img_array = np.array(img)
+    
+    # Apply EfficientNet specific preprocessing
+    img_array = applications.efficientnet.preprocess_input(img_array)
     img_array = np.expand_dims(img_array, axis=0)  # Add batch dimension
     
     # Get prediction
@@ -146,6 +150,7 @@ def predict_image(image_hash: str, _image: Image.Image):
         st.error(f"Prediction error: {str(e)}")
         return [{"label": "error", "score": 1.0}]
 
+# [Rest of your code remains exactly the same...]
 # =======================
 # Welcome Page
 # =======================
