@@ -6,15 +6,11 @@ import io
 import hashlib
 import random
 import os
-from huggingface_hub import login
 import keras
 import numpy as np
 
 # Set Keras backend to JAX
 os.environ["KERAS_BACKEND"] = "jax"
-
-# Authenticate with Hugging Face Hub
-login(token="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")
 
 # ----- Helper functions for fetching images for the game -----
 def fetch_real_image():
@@ -101,20 +97,20 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Load your Keras model from Hugging Face Hub
+# Load your local Keras model
 @st.cache_resource
 def load_model():
     try:
-        st.write("🔍 Loading model from Hugging Face Hub...")
-        model = keras.saving.load_model("hf://musabalosimi/deepfake1")
+        st.write("🔍 Loading your deepfake detection model...")
+        model = keras.models.load_model("deepfake_detection_model.h5")
         st.success("🚀 Model loaded successfully!")
         return model
     except Exception as e:
         st.error(f"❌ Model loading failed: {str(e)}")
         st.error("Please check:")
-        st.error("- The repository exists (musabalosimi/deepfake1)")
-        st.error("- You have internet access")
-        st.error("- Your Hugging Face token is valid")
+        st.error("- The model file exists (deepfake_detection_model.h5)")
+        st.error("- The model file is in the correct directory")
+        st.error("- The file is not corrupted")
         return None
 
 # Helper function to generate a hash for a PIL image
