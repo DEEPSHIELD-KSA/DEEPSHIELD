@@ -207,9 +207,8 @@ def main_interface():
                         """, unsafe_allow_html=True)
                     
                     conclusion = (
-                        "⚠️ Not a face image" if api_results['deepfake'] <= 0.01 else
-                        "❌ Deepfake Detected" if api_results['deepfake'] > 0.5 else
-                        "🤖 AI-Generated" if api_results['ai_generated'] > 0.5 else
+                        "❌ Deepfake Detected" if api_results['deepfake'] > 0.4 else
+                        "🤖 AI-Generated" if api_results['ai_generated'] > 0.4 else
                         "✅ Authentic Image"
                     )
                     st.markdown(f"""
