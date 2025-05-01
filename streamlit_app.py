@@ -203,7 +203,7 @@ def main_interface():
                         st.markdown(f"""
                         <div class="metric-box">
                             <h4>🧠 AI-Generated Score</h4>
-                            <h2>{api_result*100['ai_generated']:.3f}</h2>
+                            <h2>{api_results['ai_generated']:.3f}</h2>
                         </div>
                         """, unsafe_allow_html=True)
                     
