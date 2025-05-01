@@ -187,6 +187,7 @@ def main_interface():
                         open("samples/real_sample.jpg" if sample_option == "Real Sample" 
                             else "samples/fake_sample.jpg", "rb").read())
                     api_results = analyze_with_sightengine(image_bytes, api_user, api_secret)
+                    api_results = api_results*100
                     
                 if api_results:
                     st.markdown("## 🔬 API Analysis Results")
@@ -202,13 +203,13 @@ def main_interface():
                         st.markdown(f"""
                         <div class="metric-box">
                             <h4>🧠 AI-Generated Score</h4>
-                            <h2>{api_results*100['ai_generated']:.3f}</h2>
+                            <h2>{api_results['ai_generated']:.3f}</h2>
                         </div>
                         """, unsafe_allow_html=True)
                     
                     conclusion = (
-                        "❌ Deepfake Detected" if api_results['deepfake'] > 0.4 else
-                        "🤖 AI-Generated" if api_results['ai_generated'] > 0.4 else
+                        "❌ Deepfake Detected" if api_results['deepfake'] > 40 else
+                        "🤖 AI-Generated" if api_results['ai_generated'] > 40 else
                         "✅ Authentic Image"
                     )
                     st.markdown(f"""
