@@ -12,65 +12,82 @@ from keras import applications
 import requests
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
 import av
+import time
 
-# Set Keras backend
+# Set Keras backend to JAX
 os.environ["KERAS_BACKEND"] = "jax"
 
 # ----- Webcam Capture Transformer -----
 class CaptureImageTransformer(VideoTransformerBase):
     def __init__(self):
         self.capture = False
+        self.frame = None
 
     def transform(self, frame):
         img = frame.to_ndarray(format="bgr24")
         if self.capture:
-            st.session_state.captured_frame = img
+            self.frame = img
             self.capture = False
         return img
 
-# ----- Image Handling Functions -----
+# ----- Image Fetching Functions -----
 def fetch_real_image():
     real_dir = "game_real"
     if not os.path.exists(real_dir):
+        st.error("Missing 'game_real' directory")
         return None
-    real_images = [os.path.join(real_dir, f) for f in os.listdir(real_dir)
-                   if f.lower().endswith((".jpg", ".jpeg", ".png"))]
+    real_images = [
+        os.path.join(real_dir, f)
+        for f in os.listdir(real_dir)
+        if f.lower().endswith((".jpg", ".jpeg", ".png"))
+    ]
     if not real_images:
+        st.error("No real images found")
         return None
     if "used_real_images" not in st.session_state:
         st.session_state.used_real_images = set()
-    available = [img for img in real_images if img not in st.session_state.used_real_images]
-    if not available:
-        st.session_state.used_real_images = set()
-        available = real_images
-    selected = random.choice(available)
-    st.session_state.used_real_images.add(selected)
+    available_images = [
+        img for img in real_images
+        if img not in st.session_state.used_real_images
+    ]
+    if not available_images:
+        st.session_state.used_real_images.clear()
+        available_images = real_images
+    selected_image = random.choice(available_images)
+    st.session_state.used_real_images.add(selected_image)
     try:
-        return Image.open(selected)
-    except:
+        return Image.open(selected_image).copy()
+    except Exception as e:
+        st.error(f"Error loading image: {e}")
         return None
 
 def fetch_fake_image():
     fake_dir = "Game_Fake"
     if not os.path.exists(fake_dir):
+        st.error("Missing 'Game_Fake' directory")
         return None
-    fake_images = [os.path.join(fake_dir, f) for f in os.listdir(fake_dir)
-                   if f.lower().endswith((".jpg", ".jpeg", ".png"))]
+    fake_images = [
+        os.path.join(fake_dir, f)
+        for f in os.listdir(fake_dir)
+        if f.lower().endswith((".jpg", ".jpeg", ".png"))
+    ]
     if not fake_images:
+        st.error("No fake images found")
         return None
-    selected = random.choice(fake_images)
+    selected_image = random.choice(fake_images)
     try:
-        return Image.open(selected)
-    except:
+        return Image.open(selected_image).copy()
+    except Exception as e:
+        st.error(f"Error loading fake image: {e}")
         return None
 
-# ----- AI Model Functions -----
+# ----- AI Detection Functions -----
 @st.cache_resource
 def load_model():
     try:
         return keras.models.load_model("deepfake_detection_model.h5", compile=False)
     except Exception as e:
-        st.error(f"Model loading failed: {str(e)}")
+        st.error(f"Model loading failed: {e}")
         return None
 
 def get_image_hash(image: Image.Image) -> str:
@@ -82,168 +99,85 @@ def get_image_hash(image: Image.Image) -> str:
 def predict_image(image_hash: str, _image: Image.Image):
     model = load_model()
     if model is None:
-        return []
+        return [{"label": "error", "score": 1.0}]
     img = _image.convert('RGB').resize((224, 224))
-    img_array = applications.efficientnet.preprocess_input(np.array(img))
+    arr = applications.efficientnet.preprocess_input(np.array(img))
     try:
-        prob = model.predict(np.expand_dims(img_array, axis=0))[0][0]
-        return [
-            {"label": "real", "score": float(prob)},
-            {"label": "fake", "score": float(1 - prob)}
-        ]
-    except:
-        return []
+        prob = model.predict(np.expand_dims(arr, axis=0))[0][0]
+        if prob > 0.5:
+            return [
+                {"label": "real", "score": float(prob)},
+                {"label": "fake", "score": float(1 - prob)}
+            ]
+        else:
+            return [
+                {"label": "fake", "score": float(1 - prob)},
+                {"label": "real", "score": float(prob)}
+            ]
+    except Exception as e:
+        st.error(f"Inference error: {e}")
+        return [{"label": "error", "score": 1.0}]
 
 # ----- Sightengine API Integration -----
-def analyze_with_sightengine(image):
+def analyze_with_sightengine(image_bytes, api_user, api_secret):
     try:
-        buf = io.BytesIO()
-        image.save(buf, format="JPEG")
-        response = requests.post(
+        r = requests.post(
             'https://api.sightengine.com/1.0/check.json',
-            files={'media': buf.getvalue()},
+            files={'media': ('image.jpg', image_bytes, 'image/jpeg')},
             data={
-                'api_user': st.secrets["sightengine_user"],
-                'api_secret': st.secrets["sightengine_secret"],
+                'api_user': api_user,
+                'api_secret': api_secret,
                 'models': 'deepfake,genai'
             }
         )
-        return response.json()
+        result = r.json()
+        return {
+            'deepfake': result.get('type', {}).get('deepfake', 0.0),
+            'ai_generated': result.get('type', {}).get('ai_generated', 0.0)
+        }
     except Exception as e:
-        st.error(f"API Error: {str(e)}")
+        st.error(f"Sightengine API error: {e}")
         return None
 
 # ----- Streamlit UI -----
 st.set_page_config(page_title="DeepShield", page_icon="🕵️", layout="centered")
 st.title("DeepShield - Deepfake Detection")
 
-# Image Source Selection
-st.markdown("## 🔍 Select Image Source")
-source_tab1, source_tab2 = st.tabs(["📁 Upload Image", "🎥 Webcam Capture"])
-
+# --- Upload Section ---
+st.markdown("### 📤 Upload or Capture Image")
+uploaded_file = st.file_uploader("Upload Image", type=["jpg", "jpeg", "png"])
 image = None
-analysis_type = st.radio("Analysis Type", ["AI Model", "Sightengine API"], horizontal=True)
 
-with source_tab1:
-    uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
-    if uploaded_file:
-        image = Image.open(uploaded_file)
+# --- Webcam Section ---
+st.markdown("### 🎥 Capture from Webcam")
+ctx = webrtc_streamer(
+    key="camera",
+    video_transformer_factory=CaptureImageTransformer,
+    media_stream_constraints={"video": True, "audio": False},
+    async_processing=True,
+)
 
-with source_tab2:
-    ctx = webrtc_streamer(
-        key="webcam",
-        video_transformer_factory=CaptureImageTransformer,
-        media_stream_constraints={"video": True, "audio": False},
-        async_processing=True,
-    )
-    if st.button("📸 Capture Image"):
-        if ctx.video_transformer:
-            ctx.video_transformer.capture = True
-            st.info("Capturing image... Please wait 2 seconds.")
-            st.session_state.capture_triggered = True
+if ctx.video_transformer and st.button("📸 Capture & Analyze"):
+    ctx.video_transformer.capture = True
+    st.info("Capturing image…")
+    # wait until a frame is captured
+    while ctx.video_transformer.frame is None:
+        time.sleep(0.1)
+    frame = ctx.video_transformer.frame
+    image = Image.fromarray(frame[..., ::-1])  # BGR → RGB
+    st.image(image, caption="Captured Image", use_column_width=True)
 
-if 'captured_frame' in st.session_state:
-    image = Image.fromarray(st.session_state.captured_frame[..., ::-1])  # BGR to RGB
-    del st.session_state.captured_frame
+# --- File Upload Fallback ---
+if uploaded_file:
+    image = Image.open(uploaded_file)
+    st.image(image, caption="Uploaded Image", use_column_width=True)
 
-# Display and Analyze Image
+# --- Inference & Results ---
 if image is not None:
-    st.markdown("---")
-    col1, col2 = st.columns([1, 2])
-    
-    with col1:
-        st.image(image, caption="Selected Image", use_column_width=True)
-    
-    with col2:
-        st.markdown("### 🔬 Analysis Results")
-        
-        if analysis_type == "AI Model":
-            image_hash = get_image_hash(image)
-            results = predict_image(image_hash, image)
-            
-            if results:
-                chart_data = pd.DataFrame(results)
-                chart = alt.Chart(chart_data).mark_bar().encode(
-                    x='label',
-                    y='score:Q',
-                    color='label'
-                ).properties(width=400)
-                st.altair_chart(chart)
-                
-                real_score = next(r["score"] for r in results if r["label"] == "real")
-                fake_score = next(r["score"] for r in results if r["label"] == "fake")
-                st.metric("Real Confidence", f"{real_score*100:.2f}%")
-                st.metric("Fake Confidence", f"{fake_score*100:.2f}%")
-            else:
-                st.error("Prediction failed")
-        
-        else:  # Sightengine API
-            with st.spinner("Analyzing with Sightengine..."):
-                result = analyze_with_sightengine(image)
-            
-            if result:
-                if 'error' in result:
-                    st.error(f"API Error: {result['error']['message']}")
-                else:
-                    deepfake_score = result.get('deepfake', 0)
-                    ai_score = result.get('ai_generated', 0)
-                    
-                    st.progress(deepfake_score, text="Deepfake Probability")
-                    st.progress(ai_score, text="AI Generation Probability")
-                    
-                    df = pd.DataFrame({
-                        'Type': ['Deepfake', 'AI Generated'],
-                        'Score': [deepfake_score, ai_score]
-                    })
-                    st.dataframe(df.style.highlight_max(axis=0), use_container_width=True)
-            else:
-                st.error("API analysis failed")
+    image_hash = get_image_hash(image)
+    results = predict_image(image_hash, image)
+    scores = {r["label"]: r["score"] for r in results}
 
-# Training Game Section
-st.markdown("---")
-st.markdown("## 🎮 Training Game")
-if st.button("Generate Random Image"):
-    if random.choice([True, False]):
-        img = fetch_real_image()
-        label = "real"
-    else:
-        img = fetch_fake_image()
-        label = "fake"
-    
-    if img:
-        st.session_state.game_image = img
-        st.session_state.game_answer = label
-    else:
-        st.error("Failed to load training images")
-
-if 'game_image' in st.session_state:
-    st.image(st.session_state.game_image, width=300)
-    guess = st.radio("Is this image real or fake?", ["Real", "Fake"], horizontal=True)
-    
-    if st.button("Check Answer"):
-        user_answer = guess.lower()
-        if user_answer == st.session_state.game_answer:
-            st.success("Correct! 🎉")
-        else:
-            st.error(f"Wrong! This is a {st.session_state.game_answer} image")
-        del st.session_state.game_image
-        del st.session_state.game_answer
-
-# How It Works Section
-st.markdown("---")
-st.markdown("## 🤖 How It Works")
-st.markdown("""
-1. **Choose Image Source** - Upload or capture via webcam
-2. **Select Analysis Method**:
-   - *AI Model*: Local deep learning model
-   - *Sightengine API*: Commercial detection service
-3. **View Results** - Get confidence scores and visualizations
-4. **Training Game** - Practice identifying real/fake images
-""")
-
-# Footer
-st.markdown("---")
-st.markdown("""
-**Disclaimer**: This tool provides probabilistic estimates, not absolute determinations. 
-Always verify critical content through multiple channels.
-""")
+    st.markdown("### 🧠 Prediction Results")
+    st.markdown(f"**Real Confidence:** {scores.get('real', 0)*100:.2f}%")
+    st.markdown(f"**Fake Confidence:** {scores.get('fake', 0)*100:.2f}%")
