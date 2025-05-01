@@ -10,24 +10,9 @@ import keras
 import numpy as np
 from keras import applications
 import requests
-from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
-import av
 
 # Set Keras backend to JAX
-os.environ["KERAS_BACKEND"] = "jax" 
-
-# ----- Webcam Capture Transformer -----
-class CaptureImageTransformer(VideoTransformerBase):
-    def __init__(self):
-        self.capture = False
-        self.frame = None
-
-    def transform(self, frame):
-        img = frame.to_ndarray(format="bgr24")
-        if self.capture:
-            self.frame = img
-            self.capture = False
-        return img
+os.environ["KERAS_BACKEND"] = "jax"
 
 # ----- Image Fetching Functions -----
 def fetch_real_image():
@@ -126,40 +111,189 @@ def analyze_with_sightengine(image_bytes, api_user, api_secret):
         st.error(f"API Error: {str(e)}")
         return None
 
-# ----- Streamlit UI -----
-st.set_page_config(page_title="DeepShield", page_icon="🕵️", layout="centered")
-st.title("DeepShield - Deepfake Detection")
+# ----- UI Components -----
+def setup_page():
+    st.set_page_config(page_title="DeepShield", page_icon="🕵️", layout="centered")
+    st.markdown("""
+    <style>
+        .main { background: linear-gradient(135deg, #001f3f 0%, #00bcd4 100%); color: white; }
+        .stButton>button { background: #00bcd4; border-radius: 15px; transition: 0.3s; }
+        .stButton>button:hover { background: #008ba3; transform: scale(1.05); }
+        .metric-box { background: rgba(0, 188, 212, 0.1); border-radius: 15px; padding: 20px; }
+        .game-image { border-radius: 15px; transition: 0.3s; }
+        .game-image:hover { transform: scale(1.02); }
+    </style>
+    """, unsafe_allow_html=True)
 
-st.markdown("### 📤 Upload or Capture Image")
-uploaded_file = st.file_uploader("Upload Image", type=["jpg", "jpeg", "png"])
-image = None
-
-st.markdown("### 🎥 Capture from Webcam")
-ctx = webrtc_streamer(
-    key="camera",
-    video_transformer_factory=CaptureImageTransformer,
-    media_stream_constraints={"video": True, "audio": False},
-    async_processing=True,
-)
-
-if ctx.video_transformer and st.button("📸 Capture & Analyze"):
-    ctx.video_transformer.capture = True
-    st.info("Capturing image...")
-    while ctx.video_transformer.frame is None:
+def welcome_page():
+    try:
+        st.image(Image.open("logo.png"), width=800)
+    except:
         pass
-    frame_np = ctx.video_transformer.frame
-    image = Image.fromarray(frame_np[..., ::-1])  # BGR to RGB
-    st.image(image, caption="Captured Image", use_column_width=True)
+    st.title("DeepShield AI Detector")
+    st.markdown("""
+    <div class="metric-box">
+        <h3>🕵️ Detect Deepfakes & AI-Generated Content</h3>
+        <p>Combine local AI models with Sightengine API for comprehensive analysis</p>
+        <h4>Features:</h4>
+        <li>📸 Image analysis with dual detection systems</li>
+        <li>🔐 Secure API integration</li>
+        <li>🎮 Interactive detection game</li>
+        <li>📊 Detailed confidence metrics</li>
+    </div>
+    """, unsafe_allow_html=True)
+    if st.button("Start Detection →"):
+        st.session_state.page = "main"
+        st.rerun()
 
-if uploaded_file:
-    image = Image.open(uploaded_file)
-    st.image(image, caption="Uploaded Image", use_column_width=True)
+# ----- Main Detection Interface -----
+def main_interface():
+    with st.sidebar:
+        st.markdown("## 🔐 API Settings")
+        api_user = st.text_input("Sightengine API User")
+        api_secret = st.text_input("Sightengine API Secret", type="password")
+        st.markdown("---")
+        st.markdown("## 🎮 Game Controls")
+        if st.button("New Detection Game"):
+            st.session_state.game_score = 0
+            st.session_state.game_round = 1
+            st.session_state.page = "game"
+            st.rerun()
+        if st.button("← Return to Welcome"):
+            st.session_state.page = "welcome"
+            st.rerun()
 
-if image is not None:
-    image_hash = get_image_hash(image)
-    results = predict_image(image_hash, image)
-    scores = {r["label"]: r["score"] for r in results}
+    col1, col2 = st.columns([3, 2])
+    with col1:
+        st.markdown("## 📤 Image Analysis")
+        uploaded_file = st.file_uploader("Upload Image", type=["jpg", "jpeg", "png"])
+        sample_option = st.selectbox("Or choose sample:", ["Select", "Real Sample", "Fake Sample"])
 
-    st.markdown("### 🧠 Prediction Results")
-    st.markdown(f"**Real Confidence:** {scores['real']*100:.2f}%")
-    st.markdown(f"**Fake Confidence:** {scores['fake']*100:.2f}%")
+    with col2:
+        if uploaded_file or sample_option != "Select":
+            try:
+                image = Image.open(uploaded_file) if uploaded_file else (
+                    Image.open("samples/real_sample.jpg") if sample_option == "Real Sample" 
+                    else Image.open("samples/fake_sample.jpg"))
+                st.image(image, caption="Selected Image", use_container_width=True)
+            except Exception as e:
+                st.error(f"Image Error: {str(e)}")
+
+    if (uploaded_file or sample_option != "Select") and 'image' in locals():
+        try:
+            if api_user and api_secret:
+                with st.spinner("🔍 Analyzing with Sightengine API..."):
+                    image_bytes = uploaded_file.getvalue() if uploaded_file else (
+                        open("samples/real_sample.jpg" if sample_option == "Real Sample" 
+                            else "samples/fake_sample.jpg", "rb").read())
+                    api_results = analyze_with_sightengine(image_bytes, api_user, api_secret)
+                    
+                    
+                if api_results:
+                    st.markdown("## 🔬 API Analysis Results")
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.markdown(f"""
+                        <div class="metric-box">
+                            <h4>🧪 Deepfake Score</h4>
+                            <h2>{api_results['deepfake']:.3f}</h2>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    with col2:
+                        st.markdown(f"""
+                        <div class="metric-box">
+                            <h4>🧠 AI-Generated Score</h4>
+                            <h2>{api_results['ai_generated']:.3f}</h2>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    
+                    conclusion = (
+                        "❌ Deepfake Detected" if api_results['deepfake'] > 0.4 else
+                        "🤖 AI-Generated" if api_results['ai_generated'] > 0.4 else
+                        "✅ Authentic Image"
+                    )
+                    st.markdown(f"""
+                    <div class="metric-box">
+                        <h3>📝 Conclusion</h3>
+                        <h4>{conclusion}</h4>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+            else:
+                with st.spinner("🤖 Analyzing with Local Model..."):
+                    image_hash = get_image_hash(image)
+                    model_results = predict_image(image_hash, image)
+                    scores = {r["label"]: r["score"] for r in model_results}
+                    
+                st.markdown("## 📊 Local Model Results")
+                st.markdown(f"""
+                <div class="metric-box">
+                    <div style="background: linear-gradient(90deg, #00ff88 {scores['real']*100}%, 
+                        rgba(0,0,0,0.1) {scores['real']*100}%); border-radius: 10px; padding: 15px;">
+                        <h4>✅ Real Confidence: {scores['real']*100:.2f}%</h4>
+                    </div>
+                    <div style="margin-top: 20px; background: linear-gradient(90deg, #ff4d4d {scores['fake']*100}%, 
+                        rgba(0,0,0,0.1) {scores['fake']*100}%); border-radius: 10px; padding: 15px;">
+                        <h4>❌ Fake Confidence: {scores['fake']*100:.2f}%</h4>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+        except Exception as e:
+            st.error(f"Analysis Error: {str(e)}")
+
+# ----- Game Interface -----
+def game_interface():
+    st.title("🎮 Detection Game")
+    if st.session_state.get("game_round", 1) > 5:
+        st.markdown(f"## Game Over! Final Score: {st.session_state.get('game_score', 0)}/5")
+        if st.button("Play Again"):
+            st.session_state.game_score = 0
+            st.session_state.game_round = 1
+            st.rerun()
+        return
+
+    st.markdown(f"### Round {st.session_state.get('game_round', 1)} of 5")
+    st.markdown(f"Current Score: {st.session_state.get('game_score', 0)}")
+
+    if "current_round" not in st.session_state:
+        real_img = fetch_real_image()
+        fake_img = fetch_fake_image()
+        if real_img and fake_img:
+            st.session_state.current_round = {
+                "images": random.sample([(real_img, "Real"), (fake_img, "Fake")], 2),
+                "answer": random.choice(["Left", "Right"])
+            }
+
+    if "current_round" in st.session_state:
+        col1, col2 = st.columns(2)
+        with col1:
+            st.image(st.session_state.current_round["images"][0][0], 
+                    caption="Left Image", use_column_width=True)
+        with col2:
+            st.image(st.session_state.current_round["images"][1][0], 
+                    caption="Right Image", use_column_width=True)
+
+        user_guess = st.radio("Which image is real?", ["Left", "Right"], horizontal=True)
+        if st.button("Submit Guess"):
+            if user_guess == st.session_state.current_round["answer"]:
+                st.session_state.game_score += 1
+                st.success("Correct! 🎉")
+            else:
+                st.error("Wrong Answer 😢")
+            st.session_state.game_round += 1
+            del st.session_state.current_round
+            st.rerun()
+
+# ----- App Flow -----
+if __name__ == "__main__":
+    setup_page()
+    if "page" not in st.session_state:
+        st.session_state.page = "welcome"
+    
+    if st.session_state.page == "welcome":
+        welcome_page()
+    elif st.session_state.page == "game":
+        game_interface()
+    else:
+        main_interface()
