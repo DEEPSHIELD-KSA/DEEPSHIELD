@@ -8,6 +8,7 @@ import random
 import os
 import keras
 import numpy as np
+import base64
 from keras import applications
 import requests
 
@@ -17,6 +18,12 @@ os.environ["KERAS_BACKEND"] = "jax"
 # ----- Constants & Configurations -----
 API_USER = "1285106646"
 API_KEY = "CDWtk3q6HdqHcs6DJxn9Y8YnL46kz6pX"
+
+# ----- Helper Functions -----
+def image_to_base64(image):
+    buffered = io.BytesIO()
+    image.save(buffered, format="PNG")
+    return base64.b64encode(buffered.getvalue()).decode()
 
 # ----- Image Fetching Functions -----
 def fetch_real_image():
@@ -161,13 +168,51 @@ def setup_page():
             border: 1px solid rgba(255,255,255,0.2);
         }
         
-        .game-card {
-            transition: transform 0.3s ease;
-            cursor: pointer;
+        .game-image-container {
+            width: 400px;
+            height: 400px;
+            border-radius: 20px;
+            overflow: hidden;
+            margin: 0 auto 2rem;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            position: relative;
         }
         
-        .game-card:hover {
-            transform: scale(1.03);
+        .game-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+        
+        .game-image:hover {
+            transform: scale(1.05);
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        @keyframes shake {
+            0% { transform: rotate(0deg); }
+            25% { transform: rotate(15deg); }
+            50% { transform: rotate(-15deg); }
+            75% { transform: rotate(10deg); }
+            100% { transform: rotate(0deg); }
+        }
+        
+        .ai-conclusion {
+            animation: pulse 2s infinite;
+            background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
         
         h1, h2, h3 {
@@ -186,69 +231,34 @@ def welcome_page():
     with col2:
         st.title("DeepShield AI Detector")
     
-    st.markdown(f"""
-<div class="metric-card">
-    <h3>📝 Expert Conclusion</h3>
-    <div style="
-        position: relative;
-        padding: 1.5rem;
-        border-radius: 15px;
-        {'background: linear-gradient(45deg, #ff6b6b, #ff8e53);' if '🤖' in conclusion else ''}
-        {'background: linear-gradient(45deg, #00ff88, #00bcd4);' if '✅' in conclusion else ''}
-        {'background: linear-gradient(45deg, #ff4d4d, #c23c3c);' if '❌' in conclusion else ''}
-        animation: pulse 2s infinite;
-        text-align: center;
-    ">
-        <h2 style="
-            color: white;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-            margin: 0;
-            font-size: 2.2rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.8rem;
-        ">
-            <span style="
-                display: inline-block;
-                animation: {'float' if '🤖' in conclusion else 'none'} 3s ease-in-out infinite;
-            ">{conclusion.split()[0]}</span>
-            <span style="
-                font-size: 1.8rem;
-                animation: {'shake' if '🤖' in conclusion else 'none'} 1.5s ease-in-out infinite;
-            ">{'🤖' if '🤖' in conclusion else '❌' if '❌' in conclusion else '✅'}</span>
-        </h2>
+    st.markdown("""
+    <div class="metric-card">
+        <h3>🕵️ Advanced Deepfake Detection</h3>
+        <p>Combining cutting-edge AI models with professional API analysis</p>
+        
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-top: 2rem;">
+            <div class="metric-card">
+                <h4>📸 Image Analysis</h4>
+                <p>Dual detection systems for maximum accuracy</p>
+            </div>
+            
+            <div class="metric-card">
+                <h4>🔐 Secure Processing</h4>
+                <p>Military-grade encryption for all uploads</p>
+            </div>
+            
+            <div class="metric-card">
+                <h4>🤖 AI-Powered</h4>
+                <p>State-of-the-art neural networks</p>
+            </div>
+            
+            <div class="metric-card">
+                <h4>📊 Detailed Reports</h4>
+                <p>Comprehensive analysis results</p>
+            </div>
+        </div>
     </div>
-</div>
-
-<style>
-@keyframes pulse {
-    0% {{ transform: scale(1); }}
-    50% {{ transform: scale(1.02); }}
-    100% {{ transform: scale(1); }}
-}
-
-@keyframes float {
-    0% {{ transform: translateY(0px); }}
-    50% {{ transform: translateY(-10px); }}
-    100% {{ transform: translateY(0px); }}
-}
-
-@keyframes shake {
-    0% {{ transform: rotate(0deg); }}
-    25% {{ transform: rotate(15deg); }}
-    50% {{ transform: rotate(-15deg); }}
-    75% {{ transform: rotate(10deg); }}
-    100% {{ transform: rotate(0deg); }}
-}
-
-@keyframes gradient {
-    0% {{ background-position: 0% 50%; }}
-    50% {{ background-position: 100% 50%; }}
-    100% {{ background-position: 0% 50%; }}
-}
-</style>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
     
     if st.button("Start Detection →", key="start_btn"):
         st.session_state.page = "main"
@@ -322,9 +332,34 @@ def main_interface():
                     st.markdown(f"""
                     <div class="metric-card">
                         <h3>📝 Expert Conclusion</h3>
-                        <h2 style="color: {'var(--accent)' if '❌' in conclusion or '🤖' in conclusion else '#00ff88'}">
-                            {conclusion}
-                        </h2>
+                        <div style="
+                            padding: 1.5rem;
+                            border-radius: 15px;
+                            {'background: linear-gradient(45deg, #ff6b6b, #ff8e53);' if '🤖' in conclusion else ''}
+                            {'background: linear-gradient(45deg, #00ff88, #00bcd4);' if '✅' in conclusion else ''}
+                            {'background: linear-gradient(45deg, #ff4d4d, #c23c3c);' if '❌' in conclusion else ''}
+                            text-align: center;
+                            {'animation: pulse 2s infinite;' if '🤖' in conclusion else ''}
+                        ">
+                            <h2 style="
+                                color: white;
+                                margin: 0;
+                                font-size: 2.2rem;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                gap: 0.8rem;
+                            ">
+                                <span style="
+                                    display: inline-block;
+                                    {'animation: float 3s ease-in-out infinite;' if '🤖' in conclusion else ''}
+                                ">{conclusion.split()[0]}</span>
+                                <span style="
+                                    font-size: 1.8rem;
+                                    {'animation: shake 1.5s ease-in-out infinite;' if '🤖' in conclusion else ''}
+                                ">{'🤖' if '🤖' in conclusion else '❌' if '❌' in conclusion else '✅'}</span>
+                            </h2>
+                        </div>
                     </div>
                     """, unsafe_allow_html=True)
 
@@ -381,9 +416,12 @@ def game_interface():
         cols = st.columns(2)
         for idx, (img, label) in enumerate(st.session_state.current_round["images"]):
             with cols[idx]:
-                st.markdown(f"<div class='game-card'>", unsafe_allow_html=True)
-                st.image(img, use_column_width=True)
-                st.markdown("</div>", unsafe_allow_html=True)
+                st.markdown(f"""
+                <div class="game-image-container">
+                    <img src="data:image/png;base64,{image_to_base64(img)}" 
+                         class="game-image">
+                </div>
+                """, unsafe_allow_html=True)
 
         user_guess = st.radio("Which image is real?", ["Left", "Right"], horizontal=True)
         if st.button("Submit Answer", key="guess_btn"):
