@@ -8,22 +8,15 @@ import random
 import os
 import keras
 import numpy as np
-import base64
 from keras import applications
 import requests
 
 # Set Keras backend to JAX
 os.environ["KERAS_BACKEND"] = "jax"
 
-# ----- Constants & Configurations -----
+# ----- Constants -----
 API_USER = "1285106646"
 API_KEY = "CDWtk3q6HdqHcs6DJxn9Y8YnL46kz6pX"
-
-# ----- Helper Functions -----
-def image_to_base64(image):
-    buffered = io.BytesIO()
-    image.save(buffered, format="PNG")
-    return base64.b64encode(buffered.getvalue()).decode()
 
 # ----- Image Fetching Functions -----
 def fetch_real_image():
@@ -141,7 +134,7 @@ def setup_page():
         }
         
         .main { 
-            background: linear-gradient(135deg, var(--secondary) 0%, var(--primary) 100%); 
+            background: linear-gradient(135deg, var(--secondary) 0%, var(--primary) 100%);
             color: white;
         }
         
@@ -159,13 +152,14 @@ def setup_page():
             box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         }
         
-        .metric-card {
+        .analysis-card {
             background: rgba(255, 255, 255, 0.1);
             border-radius: 20px;
             padding: 2rem;
             margin: 1rem 0;
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255,255,255,0.2);
+            animation: cardEntrance 0.6s ease-out;
         }
         
         .game-image-container {
@@ -173,139 +167,40 @@ def setup_page():
             height: 400px;
             border-radius: 20px;
             overflow: hidden;
-            margin: 0 auto 2rem;
+            margin: 0 auto;
             box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-            position: relative;
-        }
-        
-        .game-image {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.3s ease;
-        }
-        
-        .game-image:hover {
-            transform: scale(1.05);
-        }
-        
-        .round-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-            padding: 1rem;
-            background: rgba(255,255,255,0.1);
-            border-radius: 15px;
-        }
-        
-        .round-text {
-            font-size: 1.2rem;
-            color: #00bcd4;
-        }
-        
-        .score-badge {
-            background: #00bcd4;
-            padding: 0.5rem 1rem;
-            border-radius: 25px;
-            font-weight: bold;
-        }
-        
-        .conclusion-card {
-            padding: 1.5rem;
-            border-radius: 15px;
-            margin: 1rem 0;
-            background: rgba(255,255,255,0.1);
-            border: 1px solid rgba(255,255,255,0.2);
-            animation: cardEntrance 0.6s ease-out;
-        }
-        
-        .ai-generated {
-            background: linear-gradient(135deg, rgba(255,107,107,0.15), rgba(255,142,83,0.15));
-            border-color: #ff6b6b;
-        }
-        
-        .conclusion-header {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-        
-        .conclusion-icon {
-            font-size: 2.5rem;
-            animation: iconFloat 3s ease-in-out infinite;
-        }
-        
-        .confidence-meter {
-            height: 30px;
-            background: rgba(0,0,0,0.3);
-            border-radius: 15px;
-            overflow: hidden;
-            position: relative;
-            margin: 1.5rem 0;
-        }
-        
-        .meter-bar {
-            height: 100%;
-            background: linear-gradient(90deg, var(--accent), #ff8e53);
-            position: relative;
-            transition: width 1s ease-out;
         }
         
         @keyframes cardEntrance {
             0% { opacity: 0; transform: translateY(20px); }
             100% { opacity: 1; transform: translateY(0); }
         }
-        
-        @keyframes iconFloat {
-            0% { transform: translateY(0); }
-            50% { transform: translateY(-5px); }
-            100% { transform: translateY(0); }
-        }
     </style>
     """, unsafe_allow_html=True)
 
 def welcome_page():
-    col1, col2 = st.columns([1, 3])
-    with col1:
-        try:
-            st.image(Image.open("logo.png"), width=200)
-        except:
-            pass
-    with col2:
-        st.title("DeepShield AI Detector")
-    
+    try:
+        st.image(Image.open("logo.png"), width=800)
+    except:
+        pass
+    st.title("DeepShield AI Detector")
     st.markdown("""
-    <div class="metric-card">
-        <h3>🕵️ Advanced Deepfake Detection</h3>
-        <p>Combining cutting-edge AI models with professional API analysis</p>
-        
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-top: 2rem;">
-            <div class="metric-card">
+    <div class="analysis-card">
+        <h3>🕵️ Detect Deepfakes & AI-Generated Content</h3>
+        <p>Combine local AI models with Sightengine API for comprehensive analysis</p>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+            <div class="analysis-card">
                 <h4>📸 Image Analysis</h4>
-                <p>Dual detection systems for maximum accuracy</p>
+                <p>Dual detection systems</p>
             </div>
-            
-            <div class="metric-card">
+            <div class="analysis-card">
                 <h4>🔐 Secure Processing</h4>
-                <p>Military-grade encryption for all uploads</p>
-            </div>
-            
-            <div class="metric-card">
-                <h4>🤖 AI-Powered</h4>
-                <p>State-of-the-art neural networks</p>
-            </div>
-            
-            <div class="metric-card">
-                <h4>📊 Detailed Reports</h4>
-                <p>Comprehensive analysis results</p>
+                <p>Military-grade encryption</p>
             </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
-    
-    if st.button("Start Detection →", key="start_btn"):
+    if st.button("Start Detection →"):
         st.session_state.page = "main"
         st.rerun()
 
@@ -337,7 +232,7 @@ def main_interface():
                 image = Image.open(uploaded_file) if uploaded_file else (
                     Image.open("samples/real_sample.jpg") if sample_option == "Real Sample" 
                     else Image.open("samples/fake_sample.jpg"))
-                st.image(image, caption="Selected Image", use_container_width=True)
+                st.image(image, use_container_width=True)
             except Exception as e:
                 st.error(f"Image Error: {str(e)}")
 
@@ -355,68 +250,57 @@ def main_interface():
                     col1, col2 = st.columns(2)
                     with col1:
                         st.markdown(f"""
-                        <div class="metric-card">
+                        <div class="analysis-card">
                             <h4>🧪 Deepfake Probability</h4>
-                            <h1 style="color: var(--accent);">{api_results['deepfake']:.0f}%</h1>
+                            <h1 style="color: var(--accent);">{api_results['deepfake']:.1f}%</h1>
                         </div>
                         """, unsafe_allow_html=True)
                     with col2:
                         st.markdown(f"""
-                        <div class="metric-card">
+                        <div class="analysis-card">
                             <h4>🧠 AI-Generated Probability</h4>
-                            <h1 style="color: var(--accent);">{api_results['ai_generated']:.0f}%</h1>
+                            <h1 style="color: var(--accent);">{api_results['ai_generated']:.1f}%</h1>
                         </div>
                         """, unsafe_allow_html=True)
                     
                     conclusion = (
-                        "❌ Confirmed Deepfake" if api_results['deepfake'] > 85 else
-                        "🤖 AI-Generated Content" if api_results['ai_generated'] > 85 else
+                        "❌ Deepfake Detected" if api_results['deepfake'] > 40 else
+                        "🤖 AI-Generated" if api_results['ai_generated'] > 40 else
                         "✅ Authentic Content"
                     )
                     st.markdown(f"""
-                    <div class="metric-card">
-                        <h3>🔍 Expert Analysis Conclusion</h3>
-                        <div class="conclusion-card {'ai-generated' if '🤖' in conclusion else ''}">
-                            <div class="conclusion-header">
-                                <span class="conclusion-icon">
-                                    {"🤖" if '🤖' in conclusion else "❌" if '❌' in conclusion else "✅"}
-                                </span>
-                                <h2 class="conclusion-title">{conclusion}</h2>
-                            </div>
-                            
-                            <div class="confidence-meter">
-                                <div class="meter-bar" style="width: {max(api_results['deepfake'], api_results['ai_generated']) if '🤖' in conclusion else 100 - max(api_results['deepfake'], api_results['ai_generated'])}%">
-                                    <span class="meter-text">
-                                        {max(api_results['deepfake'], api_results['ai_generated']) if '🤖' in conclusion else 100 - max(api_results['deepfake'], api_results['ai_generated'])}% Confidence
-                                    </span>
-                                </div>
-                            </div>
+                    <div class="analysis-card" style="text-align: center;">
+                        <h2>{conclusion}</h2>
+                        <div style="background: linear-gradient(90deg, 
+                            {f'var(--accent) {max(api_results['deepfake'], api_results['ai_generated'])}%' if '❌' in conclusion or '🤖' in conclusion else f'#00ff88 {100 - max(api_results['deepfake'], api_results['ai_generated'])}%'}, 
+                            rgba(0,0,0,0.1) 0%); 
+                            height: 10px; border-radius: 5px; margin: 1rem 0;">
                         </div>
+                        <h3>{max(api_results['deepfake'], api_results['ai_generated']):.1f}% Confidence</h3>
                     </div>
                     """, unsafe_allow_html=True)
 
             else:
-                with st.spinner("🤖 Analyzing with Local AI Model..."):
+                with st.spinner("🤖 Analyzing with Local Model..."):
                     image_hash = get_image_hash(image)
                     model_results = predict_image(image_hash, image)
                     scores = {r["label"]: r["score"] for r in model_results}
                     
-                st.markdown("## 📊 Local Model Analysis")
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.markdown(f"""
-                    <div class="metric-card">
-                        <h4>✅ Real Confidence</h4>
-                        <h1 style="color: #00ff88;">{scores['real']*100:.0f}%</h1>
+                st.markdown("## 📊 Local Model Results")
+                st.markdown(f"""
+                <div class="analysis-card">
+                    <div style="background: linear-gradient(90deg, #00ff88 {scores['real']*100}%, 
+                        rgba(0,0,0,0.1) {scores['real']*100}%); 
+                        padding: 1rem; border-radius: 15px;">
+                        <h4>✅ Real Confidence: {scores['real']*100:.1f}%</h4>
                     </div>
-                    """, unsafe_allow_html=True)
-                with col2:
-                    st.markdown(f"""
-                    <div class="metric-card">
-                        <h4>❌ Fake Confidence</h4>
-                        <h1 style="color: var(--accent);">{scores['fake']*100:.0f}%</h1>
+                    <div style="margin-top: 1rem; background: linear-gradient(90deg, #ff4d4d {scores['fake']*100}%, 
+                        rgba(0,0,0,0.1) {scores['fake']*100}%); 
+                        padding: 1rem; border-radius: 15px;">
+                        <h4>❌ Fake Confidence: {scores['fake']*100:.1f}%</h4>
                     </div>
-                    """, unsafe_allow_html=True)
+                </div>
+                """, unsafe_allow_html=True)
 
         except Exception as e:
             st.error(f"Analysis Error: {str(e)}")
@@ -424,82 +308,46 @@ def main_interface():
 # ----- Game Interface -----
 def game_interface():
     st.title("🎮 Detection Training")
-    
-    # Initialize game state
-    if "game_score" not in st.session_state:
-        st.session_state.game_score = 0
-    if "game_round" not in st.session_state:
-        st.session_state.game_round = 1
-
-    # Game over condition
-    if st.session_state.game_round > 5:
-        st.markdown(f"""
-        <div class="metric-card" style="text-align: center;">
-            <h2>Game Over! 🎯</h2>
-            <h1 style="color: #00bcd4; font-size: 3rem;">Final Score: {st.session_state.game_score}/5</h1>
-            <div style="margin-top: 2rem;">
-                <button class="restart-btn" onclick="window.location.reload()">Play Again 🔄</button>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+    if st.session_state.get("game_round", 1) > 5:
+        st.markdown(f"## Game Over! Final Score: {st.session_state.get('game_score', 0)}/5")
+        if st.button("Play Again"):
+            st.session_state.game_score = 0
+            st.session_state.game_round = 1
+            st.rerun()
         return
 
-    # Round display
-    st.markdown(f"""
-    <div class="round-header">
-        <span class="round-text">Round {st.session_state.game_round} of 5</span>
-        <span class="score-badge">Score: {st.session_state.game_score}</span>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(f"### Round {st.session_state.get('game_round', 1)} of 5")
+    st.markdown(f"Current Score: {st.session_state.get('game_score', 0)}")
 
-    # Load images
     if "current_round" not in st.session_state:
-        try:
-            real_img = fetch_real_image()
-            fake_img = fetch_fake_image()
-            if real_img and fake_img:
-                st.session_state.current_round = {
-                    "images": random.sample([(real_img, "Real"), (fake_img, "Fake")], 2),
-                    "answer": random.choice(["Left", "Right"])
-                }
-            else:
-                st.error("Failed to load game images")
-                return
-        except Exception as e:
-            st.error(f"Game initialization error: {str(e)}")
-            return
+        real_img = fetch_real_image()
+        fake_img = fetch_fake_image()
+        if real_img and fake_img:
+            st.session_state.current_round = {
+                "images": random.sample([(real_img, "Real"), (fake_img, "Fake")], 2),
+                "answer": random.choice(["Left", "Right"])
+            }
 
-    # Display images
     if "current_round" in st.session_state:
         cols = st.columns(2)
         for idx, (img, label) in enumerate(st.session_state.current_round["images"]):
             with cols[idx]:
-                try:
-                    st.markdown(f"""
-                    <div class="game-card">
-                        <div class="game-image-container">
-                            <img src="data:image/png;base64,{image_to_base64(img)}" 
-                                class="game-image">
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                except Exception as e:
-                    st.error(f"Error displaying image: {str(e)}")
-                    return
+                st.markdown(f"""
+                <div class="game-image-container">
+                    <img src="{img}" 
+                        style="width: 100%; height: 100%; object-fit: cover;">
+                </div>
+                """, unsafe_allow_html=True)
 
-        # User input
         user_guess = st.radio("Which image is real?", ["Left", "Right"], horizontal=True)
-        
-        if st.button("Submit Answer", key="guess_btn"):
+        if st.button("Submit Guess"):
             if user_guess == st.session_state.current_round["answer"]:
                 st.session_state.game_score += 1
-                st.success("Correct! 🎉 +1 Point")
+                st.success("Correct! 🎉")
             else:
-                st.error("Incorrect ❌ Try again!")
-            
-            # Clear current round and advance
-            del st.session_state.current_round
+                st.error("Wrong Answer 😢")
             st.session_state.game_round += 1
+            del st.session_state.current_round
             st.rerun()
 
 # ----- App Flow -----
