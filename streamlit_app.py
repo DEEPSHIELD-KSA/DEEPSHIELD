@@ -186,34 +186,69 @@ def welcome_page():
     with col2:
         st.title("DeepShield AI Detector")
     
-    st.markdown("""
-    <div class="metric-card">
-        <h3>🕵️ Advanced Deepfake Detection</h3>
-        <p>Combining cutting-edge AI models with professional API analysis</p>
-        
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-top: 2rem;">
-            <div class="metric-card">
-                <h4>📸 Image Analysis</h4>
-                <p>Dual detection systems for maximum accuracy</p>
-            </div>
-            
-            <div class="metric-card">
-                <h4>🔐 Secure Processing</h4>
-                <p>Military-grade encryption for all uploads</p>
-            </div>
-            
-            <div class="metric-card">
-                <h4>🤖 AI-Powered</h4>
-                <p>State-of-the-art neural networks</p>
-            </div>
-            
-            <div class="metric-card">
-                <h4>📊 Detailed Reports</h4>
-                <p>Comprehensive analysis results</p>
-            </div>
-        </div>
+    st.markdown(f"""
+<div class="metric-card">
+    <h3>📝 Expert Conclusion</h3>
+    <div style="
+        position: relative;
+        padding: 1.5rem;
+        border-radius: 15px;
+        {'background: linear-gradient(45deg, #ff6b6b, #ff8e53);' if '🤖' in conclusion else ''}
+        {'background: linear-gradient(45deg, #00ff88, #00bcd4);' if '✅' in conclusion else ''}
+        {'background: linear-gradient(45deg, #ff4d4d, #c23c3c);' if '❌' in conclusion else ''}
+        animation: pulse 2s infinite;
+        text-align: center;
+    ">
+        <h2 style="
+            color: white;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            margin: 0;
+            font-size: 2.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.8rem;
+        ">
+            <span style="
+                display: inline-block;
+                animation: {'float' if '🤖' in conclusion else 'none'} 3s ease-in-out infinite;
+            ">{conclusion.split()[0]}</span>
+            <span style="
+                font-size: 1.8rem;
+                animation: {'shake' if '🤖' in conclusion else 'none'} 1.5s ease-in-out infinite;
+            ">{'🤖' if '🤖' in conclusion else '❌' if '❌' in conclusion else '✅'}</span>
+        </h2>
     </div>
-    """, unsafe_allow_html=True)
+</div>
+
+<style>
+@keyframes pulse {
+    0% {{ transform: scale(1); }}
+    50% {{ transform: scale(1.02); }}
+    100% {{ transform: scale(1); }}
+}
+
+@keyframes float {
+    0% {{ transform: translateY(0px); }}
+    50% {{ transform: translateY(-10px); }}
+    100% {{ transform: translateY(0px); }}
+}
+
+@keyframes shake {
+    0% {{ transform: rotate(0deg); }}
+    25% {{ transform: rotate(15deg); }}
+    50% {{ transform: rotate(-15deg); }}
+    75% {{ transform: rotate(10deg); }}
+    100% {{ transform: rotate(0deg); }}
+}
+
+@keyframes gradient {
+    0% {{ background-position: 0% 50%; }}
+    50% {{ background-position: 100% 50%; }}
+    100% {{ background-position: 0% 50%; }}
+}
+</style>
+""", unsafe_allow_html=True)
     
     if st.button("Start Detection →", key="start_btn"):
         st.session_state.page = "main"
