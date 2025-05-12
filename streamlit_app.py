@@ -329,65 +329,146 @@ def main_interface():
                         "🤖 AI-Generated Content" if api_results['ai_generated'] > 85 else
                         "✅ Authentic Content"
                     )
-                    st.markdown(f"""
-                    <div class="metric-card">
-                        <h3>📝 Expert Conclusion</h3>
-                        <div style="
-                            padding: 1.5rem;
-                            border-radius: 15px;
-                            {'background: linear-gradient(45deg, #ff6b6b, #ff8e53);' if '🤖' in conclusion else ''}
-                            {'background: linear-gradient(45deg, #00ff88, #00bcd4);' if '✅' in conclusion else ''}
-                            {'background: linear-gradient(45deg, #ff4d4d, #c23c3c);' if '❌' in conclusion else ''}
-                            text-align: center;
-                            {'animation: pulse 2s infinite;' if '🤖' in conclusion else ''}
-                        ">
-                            <h2 style="
-                                color: white;
-                                margin: 0;
-                                font-size: 2.2rem;
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                                gap: 0.8rem;
-                            ">
-                                <span style="
-                                    display: inline-block;
-                                    {'animation: float 3s ease-in-out infinite;' if '🤖' in conclusion else ''}
-                                ">{conclusion.split()[0]}</span>
-                                <span style="
-                                    font-size: 1.8rem;
-                                    {'animation: shake 1.5s ease-in-out infinite;' if '🤖' in conclusion else ''}
-                                ">{'🤖' if '🤖' in conclusion else '❌' if '❌' in conclusion else '✅'}</span>
-                            </h2>
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    # Replace the conclusion section in main_interface() with:
+st.markdown(f"""
+<div class="metric-card">
+    <h3>🔍 Expert Analysis Conclusion</h3>
+    <div class="conclusion-card { 'ai-generated' if '🤖' in conclusion else 'deepfake' if '❌' in conclusion else 'authentic' }">
+        <div class="conclusion-header">
+            <span class="conclusion-icon">
+                {"🤖" if '🤖' in conclusion else "❌" if '❌' in conclusion else "✅"}
+            </span>
+            <h2 class="conclusion-title">{conclusion}</h2>
+        </div>
+        
+        <div class="confidence-meter">
+            <div class="meter-bar" style="width: {max(api_results['deepfake'], api_results['ai_generated'] if '🤖' in conclusion else 100 - max(api_results['deepfake'], api_results['ai_generated'])}%">
+                <span class="meter-text">
+                    {max(api_results['deepfake'], api_results['ai_generated'] if '🤖' in conclusion else 100 - max(api_results['deepfake'], api_results['ai_generated'])}% Confidence
+                </span>
+            </div>
+        </div>
+        
+        <div class="conclusion-details">
+            <div class="detail-item">
+                <span class="detail-label">Analysis Type:</span>
+                <span class="detail-value">{'AI Generation Detection' if '🤖' in conclusion else 'Deepfake Detection' if '❌' in conclusion else 'Authenticity Verification'}</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Key Indicators:</span>
+                <span class="detail-value">{'Artificial texture patterns' if '🤖' in conclusion else 'Facial manipulation artifacts' if '❌' in conclusion else 'Natural consistency metrics'}</span>
+            </div>
+        </div>
+    </div>
+</div>
 
-            else:
-                with st.spinner("🤖 Analyzing with Local AI Model..."):
-                    image_hash = get_image_hash(image)
-                    model_results = predict_image(image_hash, image)
-                    scores = {r["label"]: r["score"] for r in model_results}
-                    
-                st.markdown("## 📊 Local Model Analysis")
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.markdown(f"""
-                    <div class="metric-card">
-                        <h4>✅ Real Confidence</h4>
-                        <h1 style="color: #00ff88;">{scores['real']*100:.0f}%</h1>
-                    </div>
-                    """, unsafe_allow_html=True)
-                with col2:
-                    st.markdown(f"""
-                    <div class="metric-card">
-                        <h4>❌ Fake Confidence</h4>
-                        <h1 style="color: var(--accent);">{scores['fake']*100:.0f}%</h1>
-                    </div>
-                    """, unsafe_allow_html=True)
+<style>
+.conclusion-card {
+    padding: 1.5rem;
+    border-radius: 15px;
+    margin: 1rem 0;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    animation: cardEntrance 0.6s ease-out;
+}
 
-        except Exception as e:
-            st.error(f"Analysis Error: {str(e)}")
+.ai-generated {
+    background: linear-gradient(135deg, rgba(255,107,107,0.15), rgba(255,142,83,0.15));
+    border-color: #ff6b6b;
+}
+
+.deepfake {
+    background: linear-gradient(135deg, rgba(255,77,77,0.15), rgba(194,60,60,0.15));
+    border-color: #ff4d4d;
+}
+
+.authentic {
+    background: linear-gradient(135deg, rgba(0,255,136,0.15), rgba(0,188,212,0.15));
+    border-color: #00ff88;
+}
+
+.conclusion-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.conclusion-icon {
+    font-size: 2.5rem;
+    animation: iconFloat 3s ease-in-out infinite;
+}
+
+.conclusion-title {
+    margin: 0;
+    font-size: 1.8rem;
+    color: white;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.confidence-meter {
+    height: 30px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 15px;
+    overflow: hidden;
+    position: relative;
+    margin: 1.5rem 0;
+}
+
+.meter-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), #ff8e53);
+    position: relative;
+    transition: width 1s ease-out;
+}
+
+.meter-text {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: white;
+    font-weight: bold;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+.conclusion-details {
+    display: grid;
+    gap: 1rem;
+    padding-top: 1rem;
+}
+
+.detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.8rem;
+    background: rgba(255,255,255,0.05);
+    border-radius: 10px;
+}
+
+.detail-label {
+    color: #00bcd4;
+    font-weight: bold;
+}
+
+.detail-value {
+    color: white;
+    text-align: right;
+}
+
+@keyframes cardEntrance {
+    0% { opacity: 0; transform: translateY(20px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes iconFloat {
+    0% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+    100% { transform: translateY(0); }
+}
+</style>
+""", unsafe_allow_html=True)
 
 # ----- Game Interface -----
 def game_interface():
