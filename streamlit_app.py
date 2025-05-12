@@ -431,6 +431,12 @@ def game_interface():
     if "game_round" not in st.session_state:
         st.session_state.game_round = 1
 
+    # Add return button to sidebar
+    with st.sidebar:
+        if st.button("← Return to Main"):
+            st.session_state.page = "main"
+            st.rerun()
+
     # Game over condition
     if st.session_state.game_round > 5:
         st.markdown(f"""
@@ -452,15 +458,26 @@ def game_interface():
     </div>
     """, unsafe_allow_html=True)
 
-    # Load images
+    # Load images with caching
     if "current_round" not in st.session_state:
         try:
             real_img = fetch_real_image()
             fake_img = fetch_fake_image()
             if real_img and fake_img:
+                # Pre-resize images for better performance
+                real_img = real_img.resize((400, 400))
+                fake_img = fake_img.resize((400, 400))
+                
                 st.session_state.current_round = {
-                    "images": random.sample([(real_img, "Real"), (fake_img, "Fake")], 2),
-                    "answer": random.choice(["Left", "Right"])
+                    "images": random.sample([
+                        (real_img, "Real"), 
+                        (fake_img, "Fake")
+                    ], 2),
+                    "answer": random.choice(["Left", "Right"]),
+                    "images_base64": [
+                        image_to_base64(real_img),
+                        image_to_base64(fake_img)
+                    ]
                 }
             else:
                 st.error("Failed to load game images")
@@ -469,39 +486,53 @@ def game_interface():
             st.error(f"Game initialization error: {str(e)}")
             return
 
-    # Display images
+    # Display images from cached base64
     if "current_round" in st.session_state:
         cols = st.columns(2)
-        for idx, (img, label) in enumerate(st.session_state.current_round["images"]):
+        for idx in range(2):
             with cols[idx]:
-                try:
-                    st.markdown(f"""
-                    <div class="game-card">
-                        <div class="game-image-container">
-                            <img src="data:image/png;base64,{image_to_base64(img)}" 
-                                class="game-image">
-                        </div>
+                st.markdown(f"""
+                <div class="game-card">
+                    <div class="game-image-container">
+                        <img src="data:image/png;base64,{st.session_state.current_round['images_base64'][idx]}" 
+                            class="game-image">
                     </div>
-                    """, unsafe_allow_html=True)
-                except Exception as e:
-                    st.error(f"Error displaying image: {str(e)}")
-                    return
+                </div>
+                """, unsafe_allow_html=True)
 
         # User input
         user_guess = st.radio("Which image is real?", ["Left", "Right"], horizontal=True)
         
-        if st.button("Submit Answer", key="guess_btn"):
-            if user_guess == st.session_state.current_round["answer"]:
-                st.session_state.game_score += 1
-                st.success("Correct! 🎉 +1 Point")
-            else:
-                st.error("Incorrect ❌ Try again!")
-            
-            # Clear current round and advance
-            del st.session_state.current_round
-            st.session_state.game_round += 1
-            st.rerun()
+        col1, col2 = st.columns([1, 3])
+        with col1:
+            if st.button("Submit Answer", key="guess_btn"):
+                if user_guess == st.session_state.current_round["answer"]:
+                    st.session_state.game_score += 1
+                    st.success("Correct! 🎉 +1 Point")
+                else:
+                    st.error("Incorrect ❌ Try again!")
+                
+                # Clear current round and advance
+                del st.session_state.current_round
+                st.session_state.game_round += 1
+                st.experimental_rerun()
+                
+        with col2:
+            if st.button("↩ Return to Main Analysis"):
+                st.session_state.page = "main"
+                st.experimental_rerun()
 
+# Update confidence meter in main interface
+# In the conclusion section replace the confidence meter with:
+st.markdown(f"""
+<div class="confidence-meter">
+    <div class="meter-bar" style="width: {max(api_results['deepfake'], api_results['ai_generated']) if '🤖' in conclusion else 100 - max(api_results['deepfake'], api_results['ai_generated']):.1f}%">
+        <span class="meter-text">
+            {max(api_results['deepfake'], api_results['ai_generated']) if '🤖' in conclusion else 100 - max(api_results['deepfake'], api_results['ai_generated']):.1f}% Confidence
+        </span>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 # ----- App Flow -----
 if __name__ == "__main__":
     setup_page()
