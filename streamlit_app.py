@@ -478,28 +478,12 @@ def game_interface():
         for idx, (img, label) in enumerate(st.session_state.current_round["images"]):
             with cols[idx]:
                 st.markdown(f"<h4 style='text-align: center'>Image {idx+1}</h4>", unsafe_allow_html=True)
-                st.markdown(
-                    f"""
-                    <div style="
-                        width: 300px;
-                        height: 300px;
-                        margin: 0 auto;
-                        overflow: hidden;
-                        display: flex;
-                        justify-content: center;
-                        align-items: center;
-                        border: 2px solid #fff;
-                        border-radius: 10px;
-                    ">
-                        <img src="data:image/png;base64,{image_to_base64(img)}" 
-                             style="
-                                 object-fit: cover;
-                                 width: 100%;
-                                 height: 100%;
-                             ">
-                    </div>
-                    """,
-                    unsafe_allow_html=True
+                st.image(
+                    img, 
+                    use_container_width=False,
+                    width=300,
+                    output_format="JPEG",
+                    clamp=True
                 )
 
         user_guess = st.radio("Which image is real?", ["1", "2"], horizontal=True)
@@ -512,14 +496,6 @@ def game_interface():
             st.session_state.game_round += 1
             del st.session_state.current_round
             st.rerun()
-
-# Add this helper function at the top with other imports
-def image_to_base64(image):
-    buffered = io.BytesIO()
-    image.save(buffered, format="PNG")
-    return base64.b64encode(buffered.getvalue()).decode()
-    
-
 # ----- App Flow -----
 if __name__ == "__main__":
     setup_page()
