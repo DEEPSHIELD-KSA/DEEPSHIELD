@@ -441,19 +441,6 @@ def main_interface():
 def game_interface():
     st.title("🎮 Detection Training")
     
-    # Add CSS for consistent image sizing
-    st.markdown("""
-    <style>
-        .game-image {
-            width: 300px !important;
-            height: 300px !important;
-            object-fit: cover;
-            border-radius: 10px;
-            border: 2px solid #fff;
-        }
-    </style>
-    """, unsafe_allow_html=True)
-
     if st.button("← Return to Home", key="game_return_home"):
         st.session_state.page = "welcome"
         st.rerun()
@@ -496,10 +483,7 @@ def game_interface():
                     use_container_width=False,
                     width=300,
                     output_format="JPEG",
-                    clamp=True,
-                    # Add these two lines to enforce fixed size
-                    height=300,  # Set fixed height
-                    channels="RGB"  # Ensure consistent color format
+                    clamp=True
                 )
 
         user_guess = st.radio("Which image is real?", ["1", "2"], horizontal=True)
