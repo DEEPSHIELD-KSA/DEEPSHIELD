@@ -274,8 +274,8 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-    
-    if st.button("Start Detection →", key="start_btn"):
+
+if st.button("Start Detection →", key="start_btn"):
         st.session_state.page = "main"
         st.rerun()
 
