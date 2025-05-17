@@ -438,19 +438,22 @@ def main_interface():
             st.error(f"Analysis Error: {str(e)}")
 
 # ----- Game Interface -----
-# Add to top with other imports
-import base64  # <-- Add this line
-
-# Add this helper function with other imports
-def image_to_base64(image):
-    buffered = io.BytesIO()
-    image.save(buffered, format="PNG")
-    return base64.b64encode(buffered.getvalue()).decode()
-
-# Modified game interface section
 def game_interface():
     st.title("🎮 Detection Training")
     
+    # Add CSS for consistent image sizing
+    st.markdown("""
+    <style>
+        .game-image {
+            width: 300px !important;
+            height: 300px !important;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 2px solid #fff;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
     if st.button("← Return to Home", key="game_return_home"):
         st.session_state.page = "welcome"
         st.rerun()
@@ -488,28 +491,15 @@ def game_interface():
         for idx, (img, label) in enumerate(st.session_state.current_round["images"]):
             with cols[idx]:
                 st.markdown(f"<h4 style='text-align: center'>Image {idx+1}</h4>", unsafe_allow_html=True)
-                st.markdown(
-                    f"""
-                    <div style="
-                        width: 300px;
-                        height: 300px;
-                        margin: 0 auto;
-                        overflow: hidden;
-                        display: flex;
-                        justify-content: center;
-                        align-items: center;
-                        border: 2px solid #fff;
-                        border-radius: 10px;
-                    ">
-                        <img src="data:image/png;base64,{image_to_base64(img)}" 
-                             style="
-                                 object-fit: cover;
-                                 width: 100%;
-                                 height: 100%;
-                             ">
-                    </div>
-                    """,
-                    unsafe_allow_html=True
+                st.image(
+                    img, 
+                    use_container_width=False,
+                    width=300,
+                    output_format="JPEG",
+                    clamp=True,
+                    # Add these two lines to enforce fixed size
+                    height=300,  # Set fixed height
+                    channels="RGB"  # Ensure consistent color format
                 )
 
         user_guess = st.radio("Which image is real?", ["1", "2"], horizontal=True)
