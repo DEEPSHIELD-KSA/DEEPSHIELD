@@ -99,7 +99,7 @@ def predict_image(image_hash: str, _image: Image.Image):
     except Exception as e:
         return [{"label": "error", "score": 1.0}]
 
-# ----- Sightengine API Integration -----
+# ----- API Integration -----
 def analyze_with_sightengine(image_bytes):
     try:
         response = requests.post(
@@ -186,7 +186,7 @@ def welcome_page():
     col1, col2 = st.columns([1, 3])
     with col1:
         try:
-            st.image(Image.open("logo.png"), width=200)
+            st.image(Image.open("logo.png"), width=400)
         except:
             pass
     with col2:
@@ -478,12 +478,28 @@ def game_interface():
         for idx, (img, label) in enumerate(st.session_state.current_round["images"]):
             with cols[idx]:
                 st.markdown(f"<h4 style='text-align: center'>Image {idx+1}</h4>", unsafe_allow_html=True)
-                st.image(
-                    img, 
-                    use_container_width=False,
-                    width=300,
-                    output_format="JPEG",
-                    clamp=True
+                st.markdown(
+                    f"""
+                    <div style="
+                        width: 300px;
+                        height: 300px;
+                        margin: 0 auto;
+                        overflow: hidden;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        border: 2px solid #fff;
+                        border-radius: 10px;
+                    ">
+                        <img src="data:image/png;base64,{image_to_base64(img)}" 
+                             style="
+                                 object-fit: cover;
+                                 width: 100%;
+                                 height: 100%;
+                             ">
+                    </div>
+                    """,
+                    unsafe_allow_html=True
                 )
 
         user_guess = st.radio("Which image is real?", ["1", "2"], horizontal=True)
@@ -496,6 +512,13 @@ def game_interface():
             st.session_state.game_round += 1
             del st.session_state.current_round
             st.rerun()
+
+# Add this helper function at the top with other imports
+def image_to_base64(image):
+    buffered = io.BytesIO()
+    image.save(buffered, format="PNG")
+    return base64.b64encode(buffered.getvalue()).decode()
+    
 
 # ----- App Flow -----
 if __name__ == "__main__":
