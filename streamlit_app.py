@@ -192,93 +192,93 @@ def welcome_page():
     with col2:
         st.title("DeepShield AI Detector")
     
-st.markdown("""
-<style>
-  /* Container for all metric cards */
-  .metrics-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
-    padding: 2rem;
-    max-width: 1200px;
-    margin: 0 auto;
-  }
+    # Moved this entire block INSIDE the welcome_page function
+    st.markdown("""
+    <style>
+      /* Container for all metric cards */
+      .metrics-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        padding: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
 
-  /* Base card style */
-  .metric-card {
-    background: #ffffff;
-    border-radius: 12px;
-    padding: 1.5rem;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-  }
-  .metric-card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 12px 24px rgba(0,0,0,0.12);
-  }
+      /* Base card style */
+      .metric-card {
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+      .metric-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 12px 24px rgba(0,0,0,0.12);
+      }
 
-  /* Special styling for the main feature card */
-  .metric-card.feature {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: #fff;
-  }
-  .metric-card.feature h3 {
-    font-size: 1.6rem;
-    margin-bottom: 0.5rem;
-  }
-  .metric-card.feature p {
-    opacity: 0.9;
-  }
+      /* Special styling for the main feature card */
+      .metric-card.feature {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #fff;
+      }
+      .metric-card.feature h3 {
+        font-size: 1.6rem;
+        margin-bottom: 0.5rem;
+      }
+      .metric-card.feature p {
+        opacity: 0.9;
+      }
 
-  /* Headings and paragraph resets */
-  .metric-card h3,
-  .metric-card h4 {
-    margin: 0 0 0.5rem;
-    line-height: 1.2;
-  }
-  .metric-card p {
-    margin: 0;
-    line-height: 1.5;
-    color: #555;
-    font-size: 0.95rem;
-  }
-</style>
+      /* Headings and paragraph resets */
+      .metric-card h3,
+      .metric-card h4 {
+        margin: 0 0 0.5rem;
+        line-height: 1.2;
+      }
+      .metric-card p {
+        margin: 0;
+        line-height: 1.5;
+        color: #555;
+        font-size: 0.95rem;
+      }
+    </style>
 
-<div class="metrics-container">
-  <!-- Main feature card -->
-  <div class="metric-card feature">
-    <h3>🕵️ Advanced Deepfake Detection</h3>
-    <p>Combining cutting-edge AI models with professional API analysis</p>
-  </div>
+    <div class="metrics-container">
+      <!-- Main feature card -->
+      <div class="metric-card feature">
+        <h3>🕵️ Advanced Deepfake Detection</h3>
+        <p>Combining cutting-edge AI models with professional API analysis</p>
+      </div>
 
-  <!-- Sub-metrics -->
-  <div class="metric-card">
-    <h4>📸 Image Analysis</h4>
-    <p>Dual detection systems for maximum accuracy</p>
-  </div>
-  
-  <div class="metric-card">
-    <h4>🔐 Secure Processing</h4>
-    <p>Military-grade encryption for all uploads</p>
-  </div>
-  
-  <div class="metric-card">
-    <h4>🤖 AI-Powered</h4>
-    <p>State-of-the-art neural networks</p>
-  </div>
-  
-  <div class="metric-card">
-    <h4>📊 Detailed Reports</h4>
-    <p>Comprehensive analysis results</p>
-  </div>
-</div>
-""", unsafe_allow_html=True)
-
-
-if st.button("Start Detection →", key="start_btn"):
+      <!-- Sub-metrics -->
+      <div class="metric-card">
+        <h4>📸 Image Analysis</h4>
+        <p>Dual detection systems for maximum accuracy</p>
+      </div>
+      
+      <div class="metric-card">
+        <h4>🔐 Secure Processing</h4>
+        <p>Military-grade encryption for all uploads</p>
+      </div>
+      
+      <div class="metric-card">
+        <h4>🤖 AI-Powered</h4>
+        <p>State-of-the-art neural networks</p>
+      </div>
+      
+      <div class="metric-card">
+        <h4>📊 Detailed Reports</h4>
+        <p>Comprehensive analysis results</p>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    if st.button("Start Detection →", key="start_btn"):
         st.session_state.page = "main"
         st.rerun()
-
+        
 # ----- Enhanced Analysis Reports -----
 def enhanced_analysis_report(api_results):
     st.markdown("## 🔬 Professional Analysis Report")
