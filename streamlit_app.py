@@ -1,4 +1,7 @@
-import streamlit as st
+
+Classification 
+Requirements mse 
+Despretion kld     import streamlit as st
 from PIL import Image
 import pandas as pd
 import altair as alt
@@ -15,8 +18,7 @@ import requests
 os.environ["KERAS_BACKEND"] = "jax"
 
 # ----- Constants & Configurations -----
-API_USER = "1285106646"
-API_KEY = "CDWtk3q6HdqHcs6DJxn9Y8YnL46kz6pX"
+
 
 # ----- Image Fetching Functions -----
 def fetch_real_image():
@@ -380,6 +382,7 @@ def local_model_report(model_results):
 def main_interface():
     with st.sidebar:
         st.markdown("## ⚙️ Settings")
+        detection_mode = st.radio("Detection Mode")
         st.markdown("---")
         st.markdown("## 🎮 Game Controls")
         if st.button("New Detection Game"):
