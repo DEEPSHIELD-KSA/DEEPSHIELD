@@ -105,7 +105,7 @@ def predict_image(image_hash: str, _image: Image.Image):
 def analyze_with_custom_api(image_bytes):
     try:
         response = requests.post(
-            'https://your-custom-api-endpoint.com/detect',  # Replace with your API endpoint
+            'https://your-custom-api-endpoint.com/detect',
             files={'image': ('image.jpg', image_bytes, 'image/jpeg')},
             headers={'Authorization': f'Bearer {API_KEY}'}
         )
@@ -193,15 +193,15 @@ def welcome_page():
     <div class="metrics-container">
         <div class="metric-card feature">
             <h3>🕵️ Advanced Deepfake Detection</h3>
-            <p>Combining cutting-edge AI models with professional API analysis</p>
+            <p>Combining API and Local Model Analysis Automatically</p>
         </div>
         <div class="metric-card">
-            <h4>📸 Dual Analysis</h4>
-            <p>API + Local Model Ensemble Detection</p>
+            <h4>🤖 Dual Analysis</h4>
+            <p>Automatic best result selection</p>
         </div>
         <div class="metric-card">
             <h4>🔐 Secure Processing</h4>
-            <p>Military-grade encryption for all analyses</p>
+            <p>All analyses are encrypted</p>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -261,7 +261,6 @@ def local_model_report(model_results, selected=False):
 # ----- Main Detection Interface -----
 def main_interface():
     with st.sidebar:
-        st.markdown("## ⚙️ Settings")
         if st.button("New Detection Game"):
             st.session_state.game_score = 0
             st.session_state.game_round = 1
@@ -297,8 +296,9 @@ def main_interface():
             api_results = None
             model_results = None
             
-            # Get API results
-            with st.spinner("🔍 Analyzing with Professional API..."):
+            # Run both analyses simultaneously
+            with st.spinner("🔍 Running Dual Analysis..."):
+                # Get image bytes
                 if camera_photo:
                     image_bytes = camera_photo.getvalue()
                 elif uploaded_file:
@@ -307,41 +307,38 @@ def main_interface():
                     image_bytes = open("samples/real_sample.jpg" if sample_option == "Real Sample" 
                                       else "samples/fake_sample.jpg", "rb").read()
                 
+                # Parallel execution
                 api_results = analyze_with_custom_api(image_bytes)
-
-            # Get Local Model results
-            with st.spinner("🤖 Analyzing with Local AI Model..."):
                 image_hash = get_image_hash(current_image)
                 model_results = predict_image(image_hash, current_image)
+
+            # Process results
+            if api_results and model_results:
                 model_scores = {r['label']: r['score'] for r in model_results}
-
-            # Determine best result
-            api_confidence = max(api_results.values()) if api_results else 0
-            local_confidence = max(model_scores.values()) * 100 if model_results else 0
-            
-            if api_confidence > local_confidence and api_results:
-                enhanced_analysis_report(api_results, selected=True)
-                if model_results:
+                api_confidence = max(api_results.values())
+                local_confidence = max(model_scores.values()) * 100
+                
+                if api_confidence > local_confidence:
+                    enhanced_analysis_report(api_results, selected=True)
                     local_model_report(model_results, selected=False)
-            elif model_results:
-                local_model_report(model_results, selected=True)
-                if api_results:
+                else:
+                    local_model_report(model_results, selected=True)
                     enhanced_analysis_report(api_results, selected=False)
+                
+                # Confidence comparison
+                st.markdown("### 🔍 Confidence Comparison")
+                df = pd.DataFrame({
+                    'Method': ['API', 'Local Model'],
+                    'Confidence': [api_confidence, local_confidence]
+                })
+                st.bar_chart(df.set_index('Method'))
             else:
-                st.error("Both analyses failed. Please try again.")
-
-            # Confidence comparison
-            st.markdown("### 🔍 Confidence Comparison")
-            df = pd.DataFrame({
-                'Method': ['API', 'Local Model'],
-                'Confidence': [api_confidence, local_confidence]
-            })
-            st.bar_chart(df.set_index('Method'))
+                st.error("Analysis failed. Please try again.")
 
         except Exception as e:
             st.error(f"Analysis Error: {str(e)}")
 
-# ----- Game Interface -----
+# ----- Game Interface ----- 
 def game_interface():
     st.title("🎮 Detection Training")
     
