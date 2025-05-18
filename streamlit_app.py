@@ -15,9 +15,9 @@ import requests
 os.environ["KERAS_BACKEND"] = "jax"
 
 # ----- Constants & Configurations -----
-API_USER = "your_api_user"  # Replace with your API credentials
-API_KEY = "your_api_key"    # Replace with your API key
-MODEL_PATH = "your_custom_model.h5"  # Replace with your model path
+API_USER = "1285106646"  # Replace with your API credentials
+API_KEY = "CDWtk3q6HdqHcs6DJxn9Y8YnL46kz6pX"    # Replace with your API key
+MODEL_PATH = "deepfake_detection_model.h5"  # Replace with your model path
 
 # ----- Image Fetching Functions -----
 def fetch_real_image():
