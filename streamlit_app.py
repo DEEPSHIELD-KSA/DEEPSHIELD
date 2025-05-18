@@ -380,7 +380,6 @@ def local_model_report(model_results):
 def main_interface():
     with st.sidebar:
         st.markdown("## ⚙️ Settings")
-        detection_mode = st.radio("Detection Mode", ["API Analysis", "Local Model"])
         st.markdown("---")
         st.markdown("## 🎮 Game Controls")
         if st.button("New Detection Game"):
