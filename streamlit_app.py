@@ -260,7 +260,7 @@ def welcome_page():
       
       <div class="metric-card">
         <h4>🔐 Secure Processing</h4>
-        <p>Military-grade encryption for all uploads</p>
+        <p>l,</p>
       </div>
       
       <div class="metric-card">
