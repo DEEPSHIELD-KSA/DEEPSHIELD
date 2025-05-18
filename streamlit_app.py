@@ -15,7 +15,9 @@ import requests
 os.environ["KERAS_BACKEND"] = "jax"
 
 # ----- Constants & Configurations -----
-
+API_USER = "your_api_user"  # Replace with your API credentials
+API_KEY = "your_api_key"    # Replace with your API key
+MODEL_PATH = "your_custom_model.h5"  # Replace with your model path
 
 # ----- Image Fetching Functions -----
 def fetch_real_image():
@@ -70,7 +72,7 @@ def fetch_fake_image():
 @st.cache_resource
 def load_model():
     try:
-        return keras.models.load_model("deepfake_detection_model.h5", compile=False)
+        return keras.models.load_model(MODEL_PATH, compile=False)
     except Exception as e:
         st.error(f"Model loading failed: {str(e)}")
         return None
@@ -100,23 +102,18 @@ def predict_image(image_hash: str, _image: Image.Image):
         return [{"label": "error", "score": 1.0}]
 
 # ----- API Integration -----
-def analyze_with_sightengine(image_bytes):
+def analyze_with_custom_api(image_bytes):
     try:
         response = requests.post(
-            'https://api.sightengine.com/1.0/check.json',
-            files={'media': ('image.jpg', image_bytes, 'image/jpeg')},
-            data={
-                'api_user': API_USER,
-                'api_secret': API_KEY,
-                'models': 'deepfake,genai'
-            }
+            'https://your-custom-api-endpoint.com/detect',  # Replace with your API endpoint
+            files={'image': ('image.jpg', image_bytes, 'image/jpeg')},
+            headers={'Authorization': f'Bearer {API_KEY}'}
         )
         result = response.json()
-        scores = {
-            'deepfake': result['type'].get('deepfake', 0.0) * 100,
-            'ai_generated': result['type'].get('ai_generated', 0.0) * 100
+        return {
+            'deepfake': result.get('deepfake_score', 0) * 100,
+            'ai_generated': result.get('ai_probability', 0) * 100
         }
-        return scores
     except Exception as e:
         st.error(f"API Error: {str(e)}")
         return None
@@ -192,96 +189,31 @@ def welcome_page():
     with col2:
         st.title("DeepShield AI Detector")
     
-    # Moved this entire block INSIDE the welcome_page function
     st.markdown("""
-    <style>
-      /* Container for all metric cards */
-      .metrics-container {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 1.5rem;
-        padding: 2rem;
-        max-width: 1200px;
-        margin: 0 auto;
-      }
-
-      /* Base card style */
-      .metric-card {
-        background: #ffffff;
-        border-radius: 12px;
-        padding: 1.5rem;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-      }
-      .metric-card:hover {
-        transform: translateY(-6px);
-        box-shadow: 0 12px 24px rgba(0,0,0,0.12);
-      }
-
-      /* Special styling for the main feature card */
-      .metric-card.feature {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: #fff;
-      }
-      .metric-card.feature h3 {
-        font-size: 1.6rem;
-        margin-bottom: 0.5rem;
-      }
-      .metric-card.feature p {
-        opacity: 0.9;
-      }
-
-      /* Headings and paragraph resets */
-      .metric-card h3,
-      .metric-card h4 {
-        margin: 0 0 0.5rem;
-        line-height: 1.2;
-      }
-      .metric-card p {
-        margin: 0;
-        line-height: 1.5;
-        color: #555;
-        font-size: 0.95rem;
-      }
-    </style>
-
     <div class="metrics-container">
-      <!-- Main feature card -->
-      <div class="metric-card feature">
-        <h3>🕵️ Advanced Deepfake Detection</h3>
-        <p>Combining cutting-edge AI models with professional API analysis</p>
-      </div>
-
-      <!-- Sub-metrics -->
-      <div class="metric-card">
-        <h4>📸 Image Analysis</h4>
-        <p>Dual detection systems for maximum accuracy</p>
-      </div>
-      
-      <div class="metric-card">
-        <h4>🔐 Secure Processing</h4>
-        <p>l,</p>
-      </div>
-      
-      <div class="metric-card">
-        <h4>🤖 AI-Powered</h4>
-        <p>State-of-the-art neural networks</p>
-      </div>
-      
-      <div class="metric-card">
-        <h4>📊 Detailed Reports</h4>
-        <p>Comprehensive analysis results</p>
-      </div>
+        <div class="metric-card feature">
+            <h3>🕵️ Advanced Deepfake Detection</h3>
+            <p>Combining cutting-edge AI models with professional API analysis</p>
+        </div>
+        <div class="metric-card">
+            <h4>📸 Dual Analysis</h4>
+            <p>API + Local Model Ensemble Detection</p>
+        </div>
+        <div class="metric-card">
+            <h4>🔐 Secure Processing</h4>
+            <p>Military-grade encryption for all analyses</p>
+        </div>
     </div>
     """, unsafe_allow_html=True)
     
     if st.button("Start Detection →", key="start_btn"):
         st.session_state.page = "main"
         st.rerun()
-        
-# ----- Enhanced Analysis Reports -----
-def enhanced_analysis_report(api_results):
-    st.markdown("## 🔬 Professional Analysis Report")
+
+# ----- Analysis Reports -----
+def enhanced_analysis_report(api_results, selected=False):
+    title = "## 🔬 Professional Analysis Report" + (" 🏆" if selected else "")
+    st.markdown(title)
     
     col1, col2 = st.columns(2)
     with col1:
@@ -302,45 +234,10 @@ def enhanced_analysis_report(api_results):
         </div>
         """, unsafe_allow_html=True)
 
-    df = pd.DataFrame({
-        'Type': ['Deepfake', 'AI Generated'],
-        'Percentage': [api_results['deepfake'], api_results['ai_generated']]
-    })
-    chart = alt.Chart(df).mark_bar().encode(
-        x='Type',
-        y='Percentage',
-        color=alt.Color('Type', scale=alt.Scale(
-            domain=['Deepfake', 'AI Generated'],
-            range=['#ff4d4d', '#00bcd4']
-        ))
-    ).properties(height=200)
-    st.altair_chart(chart, use_container_width=True)
-
-    conclusion, explanation = ("❌ Confirmed Deepfake", "This content shows strong signs of digital manipulation.") if api_results['deepfake'] > 85 else \
-                              ("🤖 AI-Generated Content", "This content was likely generated by AI systems.") if api_results['ai_generated'] > 85 else \
-                              ("✅ Authentic Content", "This content appears to be genuine and unmodified.")
-
-    st.markdown(f"""
-    <div class="metric-card">
-        <h3>📝 Expert Conclusion</h3>
-        <h2 style="color: {'var(--accent)' if '❌' in conclusion or '🤖' in conclusion else '#00ff88'}">
-            {conclusion}
-        </h2>
-        <p>{explanation}</p>
-        <div style="margin-top: 1rem; background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 10px;">
-            <h4>🔍 Key Indicators:</h4>
-            <ul>
-                <li>Deepfake confidence level: {api_results['deepfake']:.0f}%</li>
-                <li>AI generation markers: {api_results['ai_generated']:.0f}%</li>
-                <li>Combined risk score: {max(api_results['deepfake'], api_results['ai_generated']):.0f}%</li>
-            </ul>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-def local_model_report(model_results):
+def local_model_report(model_results, selected=False):
+    title = "## 🤖 Local Model Analysis" + (" 🏆" if selected else "")
+    st.markdown(title)
     scores = {r["label"]: r["score"] for r in model_results}
-    st.markdown("## 📊 Local Model Analysis")
     
     col1, col2 = st.columns(2)
     with col1:
@@ -361,27 +258,10 @@ def local_model_report(model_results):
         </div>
         """, unsafe_allow_html=True)
 
-    df = pd.DataFrame({
-        'Type': ['Real', 'Fake'],
-        'Percentage': [scores['real']*100, scores['fake']*100]
-    })
-    chart = alt.Chart(df).mark_bar().encode(
-        x='Type',
-        y='Percentage',
-        color=alt.Color('Type', scale=alt.Scale(
-            domain=['Real', 'Fake'],
-            range=['#00bcd4', '#ff4d4d']
-        ))
-    ).properties(height=200)
-    st.altair_chart(chart, use_container_width=True)
-
 # ----- Main Detection Interface -----
 def main_interface():
     with st.sidebar:
         st.markdown("## ⚙️ Settings")
-        detection_mode = st.radio("Detection Mode", ["API Analysis", "Local Model"])
-        st.markdown("---")
-        st.markdown("## 🎮 Game Controls")
         if st.button("New Detection Game"):
             st.session_state.game_score = 0
             st.session_state.game_round = 1
@@ -405,7 +285,8 @@ def main_interface():
         elif uploaded_file:
             current_image = Image.open(uploaded_file)
         elif sample_option != "Select":
-            current_image = Image.open("samples/real_sample.jpg") if sample_option == "Real Sample" else Image.open("samples/fake_sample.jpg")
+            current_image = Image.open("samples/real_sample.jpg" if sample_option == "Real Sample" 
+                                      else "samples/fake_sample.jpg")
 
         if current_image:
             st.image(current_image, caption="Selected Image", use_container_width=True, 
@@ -413,26 +294,49 @@ def main_interface():
 
     if current_image:
         try:
-            if detection_mode == "API Analysis":
-                with st.spinner("🔍 Analyzing with Professional API..."):
-                    if camera_photo:
-                        image_bytes = camera_photo.getvalue()
-                    elif uploaded_file:
-                        image_bytes = uploaded_file.getvalue()
-                    else:
-                        image_bytes = open("samples/real_sample.jpg" if sample_option == "Real Sample" 
-                                          else "samples/fake_sample.jpg", "rb").read()
-                    
-                    api_results = analyze_with_sightengine(image_bytes)
-                    
-                if api_results:
-                    enhanced_analysis_report(api_results)
+            api_results = None
+            model_results = None
+            
+            # Get API results
+            with st.spinner("🔍 Analyzing with Professional API..."):
+                if camera_photo:
+                    image_bytes = camera_photo.getvalue()
+                elif uploaded_file:
+                    image_bytes = uploaded_file.getvalue()
+                else:
+                    image_bytes = open("samples/real_sample.jpg" if sample_option == "Real Sample" 
+                                      else "samples/fake_sample.jpg", "rb").read()
+                
+                api_results = analyze_with_custom_api(image_bytes)
 
+            # Get Local Model results
+            with st.spinner("🤖 Analyzing with Local AI Model..."):
+                image_hash = get_image_hash(current_image)
+                model_results = predict_image(image_hash, current_image)
+                model_scores = {r['label']: r['score'] for r in model_results}
+
+            # Determine best result
+            api_confidence = max(api_results.values()) if api_results else 0
+            local_confidence = max(model_scores.values()) * 100 if model_results else 0
+            
+            if api_confidence > local_confidence and api_results:
+                enhanced_analysis_report(api_results, selected=True)
+                if model_results:
+                    local_model_report(model_results, selected=False)
+            elif model_results:
+                local_model_report(model_results, selected=True)
+                if api_results:
+                    enhanced_analysis_report(api_results, selected=False)
             else:
-                with st.spinner("🤖 Analyzing with Local AI Model..."):
-                    image_hash = get_image_hash(current_image)
-                    model_results = predict_image(image_hash, current_image)
-                    local_model_report(model_results)
+                st.error("Both analyses failed. Please try again.")
+
+            # Confidence comparison
+            st.markdown("### 🔍 Confidence Comparison")
+            df = pd.DataFrame({
+                'Method': ['API', 'Local Model'],
+                'Confidence': [api_confidence, local_confidence]
+            })
+            st.bar_chart(df.set_index('Method'))
 
         except Exception as e:
             st.error(f"Analysis Error: {str(e)}")
@@ -496,6 +400,7 @@ def game_interface():
             st.session_state.game_round += 1
             del st.session_state.current_round
             st.rerun()
+
 # ----- App Flow -----
 if __name__ == "__main__":
     setup_page()
