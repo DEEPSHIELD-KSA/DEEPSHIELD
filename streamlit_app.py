@@ -1,7 +1,5 @@
 
-Classification 
-Requirements mse 
-Despretion kld     import streamlit as st
+import streamlit as st
 from PIL import Image
 import pandas as pd
 import altair as alt
@@ -382,7 +380,7 @@ def local_model_report(model_results):
 def main_interface():
     with st.sidebar:
         st.markdown("## ⚙️ Settings")
-        detection_mode = st.radio("Detection Mode")
+        detection_mode = st.radio("Detection Mode", ["API Analysis", "Local Model"])
         st.markdown("---")
         st.markdown("## 🎮 Game Controls")
         if st.button("New Detection Game"):
