@@ -306,7 +306,7 @@ def enhanced_analysis_report(api_results, model_results):
             <h4>🧠 Combined AI-Generated Probability</h4>
             <h1 style="color: var(--accent);">{combined_results['ai_generated']:.0f}%</h1>
             <progress value="{combined_results['ai_generated']}" max="100" style="width: 100%; height: 10px;"></progress>
-            <small>API: {api_results['ai_generated']:.0f}% + Model: {model_results['fake']*100:.0f}%</small>
+            <small>API: {api_results['ai_generated']:.0f}%</small>
         </div>
         """, unsafe_allow_html=True)
 
@@ -340,7 +340,6 @@ def enhanced_analysis_report(api_results, model_results):
             <ul>
                 <li>API Deepfake: {api_results['deepfake']:.0f}%</li>
                 <li>API AI-Generated: {api_results['ai_generated']:.0f}%</li>
-                <li>Local Model Fake: {model_results['fake']*100:.0f}%</li>
                 <li>Combined Risk Score: {max(combined_results['deepfake'], combined_results['ai_generated']):.0f}%</li>
             </ul>
         </div>
