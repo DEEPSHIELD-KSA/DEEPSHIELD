@@ -259,11 +259,7 @@ def welcome_page():
         <p>Dual detection systems for maximum accuracy</p>
       </div>
       
-      <div class="metric-card">
-        <h4>🔐 Secure Processing</h4>
-        <p>l,</p>
-      </div>
-      
+    
       <div class="metric-card">
         <h4>🤖 AI-Powered</h4>
         <p>State-of-the-art neural networks</p>
