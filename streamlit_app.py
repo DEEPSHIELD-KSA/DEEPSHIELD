@@ -196,7 +196,6 @@ def welcome_page():
     
     st.markdown("""
     <style>
-      /* Container for all metric cards */
       .metrics-container {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -206,60 +205,63 @@ def welcome_page():
         margin: 0 auto;
       }
 
-      /* Base card style */
       .metric-card {
-        background: #ffffff;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         border-radius: 12px;
         padding: 1.5rem;
         box-shadow: 0 4px 12px rgba(0,0,0,0.08);
         transition: transform 0.3s ease, box-shadow 0.3s ease;
+        color: white;
+        border: 1px solid rgba(255,255,255,0.2);
       }
+      
       .metric-card:hover {
         transform: translateY(-6px);
-        box-shadow: 0 12px 24px rgba(0,0,0,0.12);
+        box-shadow: 0 12px 24px rgba(0,0,0,0.2);
       }
 
-      /* Special styling for the main feature card */
-      .metric-card.feature {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: #fff;
-      }
-      .metric-card.feature h3 {
-        font-size: 1.6rem;
-        margin-bottom: 0.5rem;
-      }
-      .metric-card.feature p {
-        opacity: 0.9;
-      }
-
-      /* Headings and paragraph resets */
       .metric-card h3,
       .metric-card h4 {
         margin: 0 0 0.5rem;
         line-height: 1.2;
+        color: white;
       }
+      
       .metric-card p {
         margin: 0;
         line-height: 1.5;
-        color: #444444;
+        color: rgba(255,255,255,0.9);
         font-size: 0.95rem;
+      }
+      
+      .metric-card progress {
+        width: 100%;
+        height: 8px;
+        border-radius: 4px;
+      }
+      
+      .metric-card progress::-webkit-progress-bar {
+        background-color: rgba(255,255,255,0.2);
+        border-radius: 4px;
+      }
+      
+      .metric-card progress::-webkit-progress-value {
+        background-color: #00bcd4;
+        border-radius: 4px;
       }
     </style>
 
     <div class="metrics-container">
-      <!-- Main feature card -->
-      <div class="metric-card feature">
+      <div class="metric-card">
         <h3>🕵️ Advanced Deepfake Detection</h3>
         <p>Combining cutting-edge AI models with professional API analysis</p>
       </div>
 
-      <!-- Sub-metrics -->
       <div class="metric-card">
         <h4>📸 Image Analysis</h4>
         <p>Dual detection systems for maximum accuracy</p>
       </div>
       
-    
       <div class="metric-card">
         <h4>🤖 AI-Powered</h4>
         <p>State-of-the-art neural networks</p>
