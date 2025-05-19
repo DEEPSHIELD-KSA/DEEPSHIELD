@@ -241,7 +241,7 @@ def welcome_page():
       .metric-card p {
         margin: 0;
         line-height: 1.5;
-        color: #555;
+        color: #00bcd4;
         font-size: 0.95rem;
       }
     </style>
