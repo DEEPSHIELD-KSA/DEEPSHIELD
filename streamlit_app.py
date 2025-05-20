@@ -16,9 +16,6 @@ os.environ["KERAS_BACKEND"] = "jax"
 
 # ----- Constants & Configurations -----
 
-API_USER = "528953067"
-API_KEY = "exT6HRVqwtzgMezDNHUJvhrgHJ9uj6ot"
-
 # ----- Image Fetching Functions -----
 def fetch_real_image():
     real_dir = "game_real"
