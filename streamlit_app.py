@@ -1,17 +1,15 @@
-import streamlit as st
-from PIL import Image
-import pandas as pd
-import altair as alt
-import io
-import hashlib
-import random
 import os
-import keras
+import cv2
 import numpy as np
-from keras import applications
-import requests
+import streamlit as st
+from keras.models import load_model
 
-# Set Keras backend to JAX
+# لا تكتب os.environ["KERAS_BACKEND"] = "jax"
+
+model = load_model("deepfake_model.h5")
+
+def preprocess_image(image):
+    # ...
 
 # ----- Constants & Configurations -----
 
