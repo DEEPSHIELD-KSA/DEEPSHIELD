@@ -265,7 +265,7 @@ def welcome_page():
     <div class="metrics-container">
       <!-- Main feature card -->
       <div class="metric-card feature">
-        <h3>🕵️ Advanced Deepfake Detection!</h3>
+        <h3>🕵️ Advanced Deepfake Detection !</h3>
         <p>Combining cutting-edge AI models with professional API analysis</p>
       </div>
 
