@@ -69,13 +69,10 @@ def fetch_fake_image():
         return None
 
 # ----- AI Detection Functions -----
-# ----- AI Detection Functions -----
 @st.cache_resource
 def load_model():
     try:
-        model = keras.models.load_model("deepfake_detection_model.h5", compile=False)
-        # Add any custom model compilation if needed here
-        return model
+        return keras.models.load_model("deepfake_detection_model.h5", compile=False)
     except Exception as e:
         st.error(f"Model loading failed: {str(e)}")
         return None
@@ -90,16 +87,10 @@ def predict_image(image_hash: str, _image: Image.Image):
     model = load_model()
     if model is None:
         return [{"label": "error", "score": 1.0}]
-    
-    # Preprocess image for your specific model
-    img = _image.convert('RGB').resize((224, 224))  # Adjust size if your model expects different dimensions
-    img_array = np.array(img) / 255.0  # Normalize to [0,1] - adjust if your model expects different normalization
-    
+    img = _image.convert('RGB').resize((224, 224))
+    img_array = applications.efficientnet.preprocess_input(np.array(img))
     try:
-        # Get prediction from your model
         prob = model.predict(np.expand_dims(img_array, axis=0))[0][0]
-        
-        # Return results in the expected format
         return [
             {"label": "real", "score": float(prob)},
             {"label": "fake", "score": float(1 - prob)}
@@ -108,8 +99,8 @@ def predict_image(image_hash: str, _image: Image.Image):
             {"label": "real", "score": float(prob)}
         ]
     except Exception as e:
-        st.error(f"Prediction error: {str(e)}")
         return [{"label": "error", "score": 1.0}]
+
 # ----- API Integration -----
 def analyze_with_sightengine(image_bytes):
     try:
@@ -124,10 +115,19 @@ def analyze_with_sightengine(image_bytes):
         )
         result = response.json()
         
-        # Safely get the scores with default values if keys don't exist
-        deepfake_score = result.get('deepfake', {}).get('score', 0.0) * 100
-        ai_generated_score = result.get('genai', {}).get('score', 0.0) * 100
-        
+        # Handle different possible response structures
+        if 'deepfake' in result and 'genai' in result:
+            # New response format
+            deepfake_score = result['deepfake'].get('score', 0.0) * 100
+            ai_generated_score = result['genai'].get('score', 0.0) * 100
+        elif 'type' in result:
+            # Legacy response format
+            deepfake_score = result['type'].get('deepfake', 0.0) * 100
+            ai_generated_score = result['type'].get('ai_generated', 0.0) * 100
+        else:
+            st.error("Unexpected API response format")
+            return None
+            
         scores = {
             'deepfake': deepfake_score,
             'ai_generated': ai_generated_score
@@ -137,6 +137,7 @@ def analyze_with_sightengine(image_bytes):
         st.error(f"API Error: {str(e)}")
         return None
 
+# [Rest of your code remains exactly the same...]
 # ----- UI Components -----
 def setup_page():
     st.set_page_config(page_title="DeepShield", page_icon="🕵️", layout="centered")
