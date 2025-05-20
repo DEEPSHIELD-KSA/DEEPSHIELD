@@ -12,7 +12,6 @@ from keras import applications
 import requests
 
 # Set Keras backend to JAX
-os.environ["KERAS_BACKEND"] = "jax"
 
 # ----- Constants & Configurations -----
 
