@@ -16,8 +16,8 @@ os.environ["KERAS_BACKEND"] = "jax"
 
 # ----- Constants & Configurations -----
 
-API_USER = "1285106646"
-API_KEY = "CDWtk3q6HdqHcs6DJxn9Y8YnL46kz6pX"
+API_USER = "528953067"
+API_KEY = "exT6HRVqwtzgMezDNHUJvhrgHJ9uj6ot"
 
 # ----- Image Fetching Functions -----
 def fetch_real_image():
