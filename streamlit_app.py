@@ -114,9 +114,14 @@ def analyze_with_sightengine(image_bytes):
             }
         )
         result = response.json()
+        
+        # Safely get the scores with default values if keys don't exist
+        deepfake_score = result.get('deepfake', {}).get('score', 0.0) * 100
+        ai_generated_score = result.get('genai', {}).get('score', 0.0) * 100
+        
         scores = {
-            'deepfake': result['type'].get('deepfake', 0.0) * 100,
-            'ai_generated': result['type'].get('ai_generated', 0.0) * 100
+            'deepfake': deepfake_score,
+            'ai_generated': ai_generated_score
         }
         return scores
     except Exception as e:
