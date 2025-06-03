@@ -6,11 +6,6 @@ from keras.models import load_model
 
 # لا تكتب os.environ["KERAS_BACKEND"] = "jax"
 
-model = load_model("deepfake_model.h5")
-
-def preprocess_image(image):
-    # ...
-
 # ----- Constants & Configurations -----
 
 # ----- Image Fetching Functions -----
